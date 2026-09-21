@@ -35,75 +35,57 @@ type GuideReason =
   | "other"
   | null;
 
-/* ─── TTS helper: เลือกเสียงไทยที่ดีและชัดที่สุดอัตโนมัติ ─── */
-let _cachedThaiVoice: SpeechSynthesisVoice | null = null;
-let _voiceSearched = false;
+/* ─── TTS helper: ใช้ edge-tts Neural (PremwadeeNeural) ผ่าน /api/tts ─── */
+let _currentAudio: HTMLAudioElement | null = null;
 
-function getBestThaiVoice(): SpeechSynthesisVoice | null {
-  if (_voiceSearched) return _cachedThaiVoice;
-  _voiceSearched = true;
+async function speak(text: string) {
+  if (typeof window === "undefined") return;
 
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices.length) return null;
-
-  // กรองเฉพาะเสียงไทย
-  const thaiVoices = voices.filter(
-    (v) => v.lang === "th-TH" || v.lang === "th" || v.lang.startsWith("th-"),
-  );
-
-  if (!thaiVoices.length) return null;
-
-  // จัดลำดับ: Natural/Online/Neural > Premium > ปกติ
-  // เสียงที่มีคำว่า Online, Natural, Neural, Premium จะฟังชัดกว่ามาก
-  const qualityKeywords = ["natural", "online", "neural", "premium"];
-
-  const scored = thaiVoices.map((v) => {
-    let score = 0;
-    const nameLower = v.name.toLowerCase();
-    for (const kw of qualityKeywords) {
-      if (nameLower.includes(kw)) score += 10;
-    }
-    // เสียงผู้หญิง (มักชื่อ Nittaya, Premwadee) ให้คะแนนเพิ่มเพราะฟังนุ่มกว่า
-    if (nameLower.includes("nittaya") || nameLower.includes("premwadee")) score += 5;
-    // remote voices ดีกว่า local
-    if (!v.localService) score += 3;
-    return { voice: v, score };
-  });
-
-  scored.sort((a, b) => b.score - a.score);
-  _cachedThaiVoice = scored[0].voice;
-  return _cachedThaiVoice;
-}
-
-function speak(text: string) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  try {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "th-TH";
-
-    const bestVoice = getBestThaiVoice();
-    if (bestVoice) {
-      u.voice = bestVoice;
-    }
-
-    // ปรับ rate/pitch ให้ฟังชัดและเป็นธรรมชาติ
-    u.rate = 0.88;   // ช้าลงเล็กน้อยให้ฟังทันโดยเฉพาะผู้สูงอายุ
-    u.pitch = 1.05;  // เสียงสูงนิดเดียวให้ฟังสดใส
-    u.volume = 1.0;  // ดังเต็มที่
-
-    window.speechSynthesis.speak(u);
-  } catch {
-    // Ignore speech synthesis failures
+  // หยุดเสียงเก่าก่อน
+  if (_currentAudio) {
+    _currentAudio.pause();
+    _currentAudio = null;
   }
-}
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
 
-// โหลดรายชื่อเสียงเมื่อพร้อม (บางเบราว์เซอร์ต้องรอ event voiceschanged)
-if (typeof window !== "undefined" && window.speechSynthesis) {
-  window.speechSynthesis.onvoiceschanged = () => {
-    _voiceSearched = false;
-    _cachedThaiVoice = null;
-  };
+  try {
+    // เรียก API /api/tts เพื่อรับเสียง Neural คุณภาพสูง
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!res.ok) throw new Error(`TTS API error: ${res.status}`);
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    _currentAudio = audio;
+
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      if (_currentAudio === audio) _currentAudio = null;
+    };
+
+    await audio.play();
+  } catch {
+    // Fallback: ใช้ Web Speech API ของเบราว์เซอร์ถ้า API ไม่ตอบ
+    if (window.speechSynthesis) {
+      try {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = "th-TH";
+        u.rate = 0.88;
+        u.pitch = 1.05;
+        u.volume = 1.0;
+        window.speechSynthesis.speak(u);
+      } catch {
+        // Ignore fallback failures
+      }
+    }
+  }
 }
 
 /* ─── Category label ─── */

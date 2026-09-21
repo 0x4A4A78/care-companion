@@ -35,56 +35,102 @@ type GuideReason =
   | "other"
   | null;
 
-/* ─── TTS helper: ใช้ edge-tts Neural (PremwadeeNeural) ผ่าน /api/tts ─── */
+/* ─── TTS helper: ใช้เสียง AI ผู้หญิงไทย (Google / Siri style) ผ่าน /api/tts ─── */
 let _currentAudio: HTMLAudioElement | null = null;
+
+function getBestThaiVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  const thai = voices.filter(
+    (v) => v.lang === "th-TH" || v.lang === "th" || v.lang.startsWith("th-"),
+  );
+  if (!thai.length) return null;
+
+  // ค้นหาเสียงผู้หญิงเป็นหลัก เช่น Premwadee, Achara, Kanya (Siri Thai), Google ภาษาไทย
+  const female = thai.find((v) => {
+    const name = v.name.toLowerCase();
+    return (
+      name.includes("premwadee") ||
+      name.includes("achara") ||
+      name.includes("kanya") ||
+      name.includes("google") ||
+      name.includes("female")
+    );
+  });
+
+  return female || thai[0];
+}
+
+function stopSpeaking() {
+  if (_currentAudio) {
+    _currentAudio.pause();
+    _currentAudio.currentTime = 0;
+    _currentAudio = null;
+  }
+  if (typeof window !== "undefined" && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+}
+
+function speakWithWebSpeechFallback(text: string) {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "th-TH";
+
+    const voice = getBestThaiVoice();
+    if (voice) {
+      u.voice = voice;
+      const isMale =
+        voice.name.toLowerCase().includes("pattara") ||
+        voice.name.toLowerCase().includes("niwat");
+      // ถ้าเป็นเสียงผู้ชายของระบบ ให้ปรับ pitch ให้สูงขึ้นเป็นเสียงผู้หญิงสดใส
+      u.pitch = isMale ? 1.35 : 1.1;
+    } else {
+      u.pitch = 1.25;
+    }
+
+    u.rate = 0.92;
+    u.volume = 1.0;
+    window.speechSynthesis.speak(u);
+  } catch {
+    // Ignore speech synthesis failures
+  }
+}
 
 async function speak(text: string) {
   if (typeof window === "undefined") return;
 
-  // หยุดเสียงเก่าก่อน
-  if (_currentAudio) {
-    _currentAudio.pause();
-    _currentAudio = null;
-  }
-  if (window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-  }
+  stopSpeaking();
+
+  const cleanText = text.trim();
+  if (!cleanText) return;
 
   try {
-    // เรียก API /api/tts เพื่อรับเสียง Neural คุณภาพสูง
-    const res = await fetch("/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-
-    if (!res.ok) throw new Error(`TTS API error: ${res.status}`);
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
+    // ลำดับที่ 1: ใช้ Google Thai Voice ผ่าน /api/tts ซึ่งเป็นเสียงผู้หญิงชัดเจน
+    const audioUrl = `/api/tts?text=${encodeURIComponent(cleanText)}`;
+    const audio = new Audio(audioUrl);
     _currentAudio = audio;
 
     audio.onended = () => {
-      URL.revokeObjectURL(url);
       if (_currentAudio === audio) _currentAudio = null;
     };
 
-    await audio.play();
-  } catch {
-    // Fallback: ใช้ Web Speech API ของเบราว์เซอร์ถ้า API ไม่ตอบ
-    if (window.speechSynthesis) {
-      try {
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = "th-TH";
-        u.rate = 0.88;
-        u.pitch = 1.05;
-        u.volume = 1.0;
-        window.speechSynthesis.speak(u);
-      } catch {
-        // Ignore fallback failures
-      }
+    audio.onerror = () => {
+      // เมื่อโหลดเสียงจาก API ไม่ได้ ให้สลับไป Web Speech API อัตโนมัติ
+      speakWithWebSpeechFallback(cleanText);
+    };
+
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.warn("[TTS] API Audio playback blocked or failed, fallback to Web Speech:", err);
+        speakWithWebSpeechFallback(cleanText);
+      });
     }
+  } catch {
+    speakWithWebSpeechFallback(cleanText);
   }
 }
 
@@ -305,6 +351,7 @@ export function VoiceAssistant() {
   }, []);
 
   const switchToText = useCallback(() => {
+    stopSpeaking();
     const session = recRef.current;
     if (session) {
       session.termination = "cancelled";
@@ -316,6 +363,7 @@ export function VoiceAssistant() {
   }, []);
 
   const handleConfirm = useCallback(() => {
+    stopSpeaking();
     if (!intent) return;
     sessionStorage.setItem("voiceIntent", JSON.stringify(intent));
     router.push("/customer/request?voice=1");
@@ -324,6 +372,7 @@ export function VoiceAssistant() {
   }, [intent, router]);
 
   const handleClose = useCallback(() => {
+    stopSpeaking();
     const session = recRef.current;
     if (session) {
       session.termination = "cancelled";
@@ -389,9 +438,32 @@ export function VoiceAssistant() {
       {phase === "result" && intent && (
         <div className="voice-panel">
           <div className="voice-panel-header">
-            <h3>
-              <Volume2 size={22} /> AI ผู้ช่วยเข้าใจแล้ว
-            </h3>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => {
+                  const msg = intent.destination
+                    ? `เข้าใจแล้วค่ะ จะช่วยหาผู้ช่วยไป${intent.destination}ให้นะคะ`
+                    : "เข้าใจแล้วค่ะ จะช่วยหาผู้ช่วยให้นะคะ";
+                  speak(msg);
+                }}
+                title="กดเพื่อฟังเสียง AI อีกครั้ง"
+                aria-label="กดเพื่อฟังเสียง AI อีกครั้ง"
+                style={{
+                  background: "var(--blue-50, #eff6ff)",
+                  color: "var(--blue, #2563eb)",
+                  borderRadius: 8,
+                  padding: "6px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Volume2 size={20} />
+              </button>
+              <h3 style={{ margin: 0 }}>AI ผู้ช่วยเข้าใจแล้ว</h3>
+            </div>
             <button
               className="icon-button"
               onClick={handleClose}
@@ -434,6 +506,18 @@ export function VoiceAssistant() {
             )}
           </div>
           <div className="voice-actions">
+            <button
+              type="button"
+              className="button button-ghost"
+              onClick={() => {
+                const msg = intent.destination
+                  ? `เข้าใจแล้วค่ะ จะช่วยหาผู้ช่วยไป${intent.destination}ให้นะคะ`
+                  : "เข้าใจแล้วค่ะ จะช่วยหาผู้ช่วยให้นะคะ";
+                speak(msg);
+              }}
+            >
+              <Volume2 size={18} /> ฟังเสียงอีกครั้ง
+            </button>
             <button className="button button-ghost" onClick={startListening}>
               <Mic size={18} /> พูดใหม่
             </button>

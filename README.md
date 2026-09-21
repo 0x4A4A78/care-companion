@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Care Companion
 
-## Getting Started
+เว็บแอปพลิเคชันสำหรับเชื่อมโยงผู้ที่ต้องการเพื่อนร่วมเดินทาง (Customer) กับผู้ให้บริการร่วมเดินทาง (Companion) โดยไม่ใช่บริการทางการแพทย์
 
-First, run the development server:
+## ฟีเจอร์ที่มีในโครงงาน
 
+- Landing page และ Google Sign-in ผ่าน Supabase Auth
+- Customer dashboard, ค้นหา Companion, โปรไฟล์, request wizard 5 ขั้นตอน และติดตามสถานะงาน
+- Companion dashboard, คำขอใหม่, สถานะความพร้อม ตารางงาน คะแนน และรายได้
+- Admin dashboard, สถิติ, จัดการผู้ใช้, ตรวจสอบตัวตน และรายการคำขอบริการ
+- Responsive UI สำหรับ desktop/mobile เน้นตัวอักษรและปุ่มขนาดใหญ่
+- PostgreSQL schema, indexes, Storage bucket และ Row Level Security
+- Business rules และ Zod validation พร้อม unit tests
+- Security headers และ OAuth callback ที่ป้องกัน open redirect
+
+## เริ่มใช้งาน
+ 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+copy .env.example .env.local
+npm run dev -- -p 3001
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+เปิด [http://localhost:3001](http://localhost:3001) แล้วเข้าสู่ระบบด้วย Google Account
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ตั้งค่า Supabase และ Google
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. สร้าง Supabase project แล้วนำ `supabase/schema.sql` ไปรันใน SQL Editor
+2. ที่ Google Cloud Console สร้าง OAuth Client ประเภท Web application
+3. เพิ่ม Authorized JavaScript origin เป็น `http://localhost:3001`
+4. เพิ่ม Authorized redirect URI เป็น Supabase Callback URL ที่แสดงในหน้า Google Provider (รูปแบบ `https://<project-ref>.supabase.co/auth/v1/callback`)
+5. เปิด Google Provider ใน Supabase Authentication แล้วใส่ Google Client ID และ Client Secret
+6. ที่ Supabase Authentication > URL Configuration เพิ่ม Redirect URL เป็น `http://localhost:3001/auth/callback` (ระหว่างพัฒนาจะใช้ `http://localhost:3001/**` ก็ได้)
+7. คัดลอก `.env.example` เป็น `.env.local` แล้วใส่ Project URL และ Publishable key จาก Supabase
+8. รีสตาร์ต dev server หลังแก้ environment variables
+9. กำหนด Admin จาก SQL Editor หรือ secure server process เท่านั้น ห้ามเปิดให้เลือก Admin จากหน้าสมัคร
 
-## Learn More
+## ตรวจคุณภาพ
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm test
+npm run test:coverage
+npm run lint
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+เชื่อม repository กับ Vercel แล้วเพิ่ม environment variables เดียวกับ `.env.local` จากนั้นเพิ่ม Vercel callback URL ใน Supabase Redirect URLs ก่อน deploy
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> Companion ช่วยเหลือด้านการเดินทางและการทำธุระเท่านั้น ไม่ใช่บุคลากรทางการแพทย์หรือผู้ดูแลรักษาผู้ป่วย

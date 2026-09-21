@@ -8,8 +8,8 @@ import {
 
 describe("OAuth redirect helpers", () => {
   it("builds an encoded callback URL for the selected role", () => {
-    expect(buildOAuthCallbackUrl("http://localhost:3001", "customer")).toBe(
-      "http://localhost:3001/auth/callback?next=%2Fchoose-role%3Frole%3Dcustomer",
+    expect(buildOAuthCallbackUrl("https://care-companion-xi.vercel.app", "customer")).toBe(
+      "https://care-companion-xi.vercel.app/auth/callback?next=%2Fchoose-role%3Frole%3Dcustomer",
     );
   });
 
@@ -22,11 +22,11 @@ describe("OAuth redirect helpers", () => {
 
   it("uses the forwarded production host but keeps the local development origin", () => {
     expect(
-      getAppOrigin("http://localhost:3001/auth/callback", "care.example.com", false),
+      getAppOrigin("https://care-companion-xi.vercel.app/auth/callback", "care.example.com", false),
     ).toBe("https://care.example.com");
     expect(
-      getAppOrigin("http://localhost:3001/auth/callback", "care.example.com", true),
-    ).toBe("http://localhost:3001");
+      getAppOrigin("http://localhost:3000/auth/callback", "care.example.com", true),
+    ).toBe("http://localhost:3000");
   });
 
   it("ignores malformed forwarded hosts", () => {

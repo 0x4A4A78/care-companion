@@ -21,16 +21,23 @@ copy .env.example .env.local
 npm run dev -- -p 3001
 ```
 
-เปิด [http://localhost:3001](http://localhost:3001) แล้วเข้าสู่ระบบด้วย Google Account
+เปิด [http://localhost:3000](http://localhost:3000) (หรือ [http://localhost:3001](http://localhost:3001)) แล้วเข้าสู่ระบบด้วย Google Account
 
 ## ตั้งค่า Supabase และ Google
 
 1. สร้าง Supabase project แล้วนำ `supabase/schema.sql` ไปรันใน SQL Editor
 2. ที่ Google Cloud Console สร้าง OAuth Client ประเภท Web application
-3. เพิ่ม Authorized JavaScript origin เป็น `http://localhost:3001`
+3. เพิ่ม Authorized JavaScript origins:
+   - สำหรับ Local: `http://localhost:3000` และ `http://localhost:3001`
+   - สำหรับ Production: `https://care-companion-xi.vercel.app`
 4. เพิ่ม Authorized redirect URI เป็น Supabase Callback URL ที่แสดงในหน้า Google Provider (รูปแบบ `https://<project-ref>.supabase.co/auth/v1/callback`)
 5. เปิด Google Provider ใน Supabase Authentication แล้วใส่ Google Client ID และ Client Secret
-6. ที่ Supabase Authentication > URL Configuration เพิ่ม Redirect URL เป็น `http://localhost:3001/auth/callback` (ระหว่างพัฒนาจะใช้ `http://localhost:3001/**` ก็ได้)
+6. ที่ Supabase Authentication > URL Configuration:
+   - **Site URL**: `https://care-companion-xi.vercel.app` (หรือ `http://localhost:3000` ในเครื่อง)
+   - **Redirect URLs**:
+     - `http://localhost:3000/**`
+     - `http://localhost:3001/**`
+     - `https://care-companion-xi.vercel.app/**`
 7. คัดลอก `.env.example` เป็น `.env.local` แล้วใส่ Project URL และ Publishable key จาก Supabase
 8. รีสตาร์ต dev server หลังแก้ environment variables
 9. กำหนด Admin จาก SQL Editor หรือ secure server process เท่านั้น ห้ามเปิดให้เลือก Admin จากหน้าสมัคร
@@ -44,8 +51,15 @@ npm run lint
 npm run build
 ```
 
-## Deploy
+## Deploy บน Vercel
 
-เชื่อม repository กับ Vercel แล้วเพิ่ม environment variables เดียวกับ `.env.local` จากนั้นเพิ่ม Vercel callback URL ใน Supabase Redirect URLs ก่อน deploy
+เว็บแอปพลิเคชันถูก Deploy ที่: **[https://care-companion-xi.vercel.app](https://care-companion-xi.vercel.app)**
+
+เชื่อม repository กับ Vercel แล้วตั้งค่า Environment Variables:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+อย่าลืมเพิ่ม `https://care-companion-xi.vercel.app/**` ลงใน Redirect URLs ของ Supabase ก่อนเริ่มใช้งานจริง
 
 > Companion ช่วยเหลือด้านการเดินทางและการทำธุระเท่านั้น ไม่ใช่บุคลากรทางการแพทย์หรือผู้ดูแลรักษาผู้ป่วย

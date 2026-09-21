@@ -35,19 +35,75 @@ type GuideReason =
   | "other"
   | null;
 
-/* ─── TTS helper ─── */
+/* ─── TTS helper: เลือกเสียงไทยที่ดีและชัดที่สุดอัตโนมัติ ─── */
+let _cachedThaiVoice: SpeechSynthesisVoice | null = null;
+let _voiceSearched = false;
+
+function getBestThaiVoice(): SpeechSynthesisVoice | null {
+  if (_voiceSearched) return _cachedThaiVoice;
+  _voiceSearched = true;
+
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  // กรองเฉพาะเสียงไทย
+  const thaiVoices = voices.filter(
+    (v) => v.lang === "th-TH" || v.lang === "th" || v.lang.startsWith("th-"),
+  );
+
+  if (!thaiVoices.length) return null;
+
+  // จัดลำดับ: Natural/Online/Neural > Premium > ปกติ
+  // เสียงที่มีคำว่า Online, Natural, Neural, Premium จะฟังชัดกว่ามาก
+  const qualityKeywords = ["natural", "online", "neural", "premium"];
+
+  const scored = thaiVoices.map((v) => {
+    let score = 0;
+    const nameLower = v.name.toLowerCase();
+    for (const kw of qualityKeywords) {
+      if (nameLower.includes(kw)) score += 10;
+    }
+    // เสียงผู้หญิง (มักชื่อ Nittaya, Premwadee) ให้คะแนนเพิ่มเพราะฟังนุ่มกว่า
+    if (nameLower.includes("nittaya") || nameLower.includes("premwadee")) score += 5;
+    // remote voices ดีกว่า local
+    if (!v.localService) score += 3;
+    return { voice: v, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  _cachedThaiVoice = scored[0].voice;
+  return _cachedThaiVoice;
+}
+
 function speak(text: string) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   try {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "th-TH";
-    u.rate = 0.9;
-    u.pitch = 1.1;
+
+    const bestVoice = getBestThaiVoice();
+    if (bestVoice) {
+      u.voice = bestVoice;
+    }
+
+    // ปรับ rate/pitch ให้ฟังชัดและเป็นธรรมชาติ
+    u.rate = 0.88;   // ช้าลงเล็กน้อยให้ฟังทันโดยเฉพาะผู้สูงอายุ
+    u.pitch = 1.05;  // เสียงสูงนิดเดียวให้ฟังสดใส
+    u.volume = 1.0;  // ดังเต็มที่
+
     window.speechSynthesis.speak(u);
   } catch {
     // Ignore speech synthesis failures
   }
+}
+
+// โหลดรายชื่อเสียงเมื่อพร้อม (บางเบราว์เซอร์ต้องรอ event voiceschanged)
+if (typeof window !== "undefined" && window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    _voiceSearched = false;
+    _cachedThaiVoice = null;
+  };
 }
 
 /* ─── Category label ─── */
@@ -492,7 +548,7 @@ export function VoiceAssistant() {
                 <AlertCircle size={18} /> ระบบถอดเสียงของเบราว์เซอร์ไม่สามารถติดต่อเซิร์ฟเวอร์ได้
               </div>
               <p style={{ margin: "0 0 6px", fontSize: ".86rem" }}>
-                ระบบแปลงเสียงพูด (Web Speech API) พึ่งพาบริการรู้จำเสียงของ Google/เบราว์เซอร์ ซึ่งอาจไม่สามารถเชื่อมต่อได้จากสาเหตุด้านล่าง:
+                ระบบแปลงเสียงพูด (Web Speech API) พึ่งพาบริการรู้จำเสียงของ Google ซึ่งเบราว์เซอร์บางตัวจะบล็อกไว้:
               </p>
               <ul
                 style={{
@@ -500,15 +556,25 @@ export function VoiceAssistant() {
                   padding: 0,
                   fontSize: ".84rem",
                   display: "grid",
-                  gap: 4,
+                  gap: 6,
                 }}
               >
                 <li>
-                  <strong>หากใช้เบราว์เซอร์ Brave:</strong> เบราว์เซอร์จะบล็อกบริการ Google เป็นค่าเริ่มต้น ให้เปิดที่{" "}
-                  <code>brave://settings/privacy</code> &rarr; เปิด <em>&ldquo;Use Google services for push messaging and speech recognition&rdquo;</em>
+                  <strong>🦁 หากใช้เบราว์เซอร์ Brave:</strong> Brave บล็อกบริการ Google Speech เป็นค่าเริ่มต้น แม้จะเปิด{" "}
+                  <em>&ldquo;Use Google services for push messaging&rdquo;</em> แล้วก็ยังไม่พอ
+                  <br />
+                  <strong style={{ color: "var(--red)" }}>วิธีแก้ (เลือกข้อใดข้อหนึ่ง):</strong>
+                  <ol style={{ margin: "4px 0 0 18px", padding: 0, display: "grid", gap: 3 }}>
+                    <li>
+                      พิมพ์ <code>brave://flags/#brave-web-speech-api</code> ในแถบที่อยู่ แล้วเปลี่ยนเป็น <strong>Enabled</strong> จากนั้นกด <strong>Relaunch</strong>
+                    </li>
+                    <li>
+                      หรือ <strong>เปลี่ยนไปใช้ Google Chrome / Microsoft Edge</strong> แทน เพราะรองรับ Web Speech API โดยตรงไม่ต้องตั้งค่าเพิ่ม
+                    </li>
+                  </ol>
                 </li>
                 <li>
-                  <strong>หากใช้ WiFi สถาบัน/หอพัก หรือ VPN:</strong> เครือข่ายอาจบล็อกพอร์ต Web Speech API ของ Google
+                  <strong>📶 หากใช้ WiFi สถาบัน/หอพัก หรือ VPN:</strong> เครือข่ายอาจบล็อกการเชื่อมต่อไปยัง Google Speech — ลองเปลี่ยนเป็น 4G/5G จากมือถือ
                 </li>
               </ul>
               <p

@@ -11,7 +11,6 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { CustomerVoiceCard } from "../../../components/customer-voice-card";
 import { Avatar, Badge, Card } from "../../../components/ui";
 import { getPortalUser } from "../../../lib/auth/portal-user";
 import { formatMoney, formatThaiDate, serviceCategoryLabel } from "../../../lib/data/presentation";
@@ -55,8 +54,6 @@ export default async function CustomerDashboard() {
               เริ่มสร้างคำขอ
             </Link>
           </Card>
-
-          <CustomerVoiceCard />
 
           {activeReq ? (
             <Card className="status-card">

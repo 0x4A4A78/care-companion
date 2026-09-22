@@ -6,7 +6,7 @@
 
 - Landing page และ Google Sign-in ผ่าน Supabase Auth
 - Customer dashboard, ค้นหา Companion, โปรไฟล์, request wizard 5 ขั้นตอน และติดตามสถานะงาน
-- Companion dashboard, คำขอใหม่, สถานะความพร้อม ตารางงาน คะแนน และรายได้
+- Companion dashboard, คำขอใหม่, สถานะความพร้อม ตารางงาน ครับแนน และรายได้
 - Admin dashboard, สถิติ, จัดการผู้ใช้, ตรวจสอบตัวตน และรายการคำขอบริการ
 - Responsive UI สำหรับ desktop/mobile เน้นตัวอักษรและปุ่มขนาดใหญ่
 - PostgreSQL schema, indexes, Storage bucket และ Row Level Security

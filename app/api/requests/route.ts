@@ -20,14 +20,14 @@ export async function POST(request: Request) {
     .select("id, reference_no, status")
     .single();
   if (error) {
-    console.error("Supabase insert service_requests error:", error);
-    let message = "ไม่สามารถบันทึกคำขอได้";
-    if (error.code === "23514") {
-      message = "สถานที่ต้นทางและปลายทางต้องมีความยาวอย่างน้อย 8 ตัวอักษรตามเงื่อนไขฐานข้อมูล (กรุณารันคำสั่งอัปเดต SQL ใน Supabase เพื่อรองรับความยาว 3 ตัวอักษรขึ้นไป)";
-    } else if (error.message) {
-      message = `${message}: ${error.message}`;
-    }
-    return NextResponse.json({ error: message, details: error.details, code: error.code }, { status: 500 });
+    console.error("Supabase insert service_requests error:", {
+      code: error.code,
+      message: error.message,
+    });
+    return NextResponse.json(
+      { error: "ไม่สามารถบันทึกคำขอได้ กรุณาลองใหม่อีกครั้ง" },
+      { status: 500 },
+    );
   }
   return NextResponse.json({ data }, { status: 201 });
 }

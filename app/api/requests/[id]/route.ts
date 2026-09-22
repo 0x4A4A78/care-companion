@@ -1,135 +1,72 @@
 import { NextResponse } from "next/server";
+
+import { canPerformRequestAction, type RequestAction, type RequestActorRole } from "../../../../lib/request-actions";
+import type { ServiceStatus } from "../../../../lib/service-status";
 import { createClient } from "../../../../lib/supabase/server";
+
+const actions: RequestAction[] = ["accept", "cancel", "start", "complete"];
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
-    const { action, cancellationReason } = body;
+    const action = body.action as RequestAction;
+    if (!actions.includes(action)) return NextResponse.json({ error: "การกระทำไม่ถูกต้อง" }, { status: 400 });
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (profileError || !profile || !["customer", "companion", "admin"].includes(profile.role)) {
+      return NextResponse.json({ error: "ไม่พบสิทธิ์ผู้ใช้งาน" }, { status: 403 });
+    }
 
-    const role = profile?.role;
-
-    // Find the request by id or reference_no
     let query = supabase.from("service_requests").select("*");
-    if (id.startsWith("CC-")) {
-      query = query.eq("reference_no", id);
-    } else {
-      query = query.or(`id.eq.${id},reference_no.eq.${id}`);
+    query = id.startsWith("CC-") ? query.eq("reference_no", id) : query.eq("id", id);
+    const { data: serviceReq, error: requestError } = await query.maybeSingle();
+    if (requestError) console.error("request action lookup failed", { requestId: id, error: requestError.code });
+    if (requestError || !serviceReq) return NextResponse.json({ error: "ไม่พบข้อมูลคำขอนี้" }, { status: 404 });
+
+    const role = profile.role as RequestActorRole;
+    const status = serviceReq.status as ServiceStatus;
+    const allowed = canPerformRequestAction(
+      action,
+      status,
+      role,
+      serviceReq.companion_id === user.id,
+      serviceReq.customer_id === user.id,
+      Boolean(serviceReq.companion_id),
+    );
+    if (!allowed) return NextResponse.json({ error: "ไม่มีสิทธิ์ หรือสถานะงานไม่รองรับการทำรายการนี้" }, { status: 409 });
+
+    const now = new Date().toISOString();
+    const changes: Record<string, unknown> = { updated_at: now };
+    if (action === "accept") Object.assign(changes, { companion_id: user.id, status: "accepted", accepted_at: now });
+    if (action === "start") Object.assign(changes, { status: "in_service", started_at: now });
+    if (action === "complete") Object.assign(changes, { status: "completed", completed_at: now });
+    if (action === "cancel") Object.assign(changes, {
+      status: "cancelled",
+      cancelled_at: now,
+      cancellation_reason: typeof body.cancellationReason === "string"
+        ? body.cancellationReason.trim().slice(0, 500) || "ยกเลิกโดยผู้ใช้"
+        : "ยกเลิกโดยผู้ใช้",
+    });
+
+    let update = supabase.from("service_requests").update(changes).eq("id", serviceReq.id).eq("status", status);
+    if (action === "accept") update = update.is("companion_id", null);
+    const { data, error } = await update.select().maybeSingle();
+    if (error) {
+      console.error("request action update failed", { requestId: serviceReq.id, action, error: error.code });
+      return NextResponse.json({ error: "ไม่สามารถเปลี่ยนสถานะงานได้ กรุณาลองใหม่" }, { status: 500 });
     }
-    const { data: serviceReq, error: reqError } = await query.maybeSingle();
-    if (reqError || !serviceReq) {
-      return NextResponse.json({ error: "ไม่พบข้อมูลคำขอนี้" }, { status: 404 });
-    }
-
-    if (action === "accept") {
-      if (role !== "companion" && role !== "admin") {
-        return NextResponse.json({ error: "เฉพาะ Companion หรือ Admin เท่านั้นที่สามารถตอบรับงานได้" }, { status: 403 });
-      }
-      if (serviceReq.status !== "requested") {
-        return NextResponse.json({ error: "คำขอนี้ไม่อยู่ในสถานะที่ตอบรับได้" }, { status: 400 });
-      }
-
-      const { data, error } = await supabase
-        .from("service_requests")
-        .update({
-          companion_id: user.id,
-          status: "accepted",
-          accepted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", serviceReq.id)
-        .select()
-        .single();
-
-      if (error) {
-        return NextResponse.json({ error: "ไม่สามารถตอบรับงานได้: " + error.message }, { status: 500 });
-      }
-      return NextResponse.json({ success: true, data });
-    }
-
-    if (action === "cancel") {
-      const isOwner = serviceReq.customer_id === user.id || serviceReq.companion_id === user.id;
-      if (!isOwner && role !== "admin") {
-        return NextResponse.json({ error: "ไม่มีสิทธิ์ยกเลิกคำขอนี้" }, { status: 403 });
-      }
-
-      const { data, error } = await supabase
-        .from("service_requests")
-        .update({
-          status: "cancelled",
-          cancelled_at: new Date().toISOString(),
-          cancellation_reason: cancellationReason ?? "ยกเลิกโดยผู้ใช้",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", serviceReq.id)
-        .select()
-        .single();
-
-      if (error) {
-        return NextResponse.json({ error: "ไม่สามารถยกเลิกงานได้: " + error.message }, { status: 500 });
-      }
-      return NextResponse.json({ success: true, data });
-    }
-
-    if (action === "start") {
-      if (serviceReq.companion_id !== user.id && role !== "admin") {
-        return NextResponse.json({ error: "ไม่มีสิทธิ์เริ่มงานนี้" }, { status: 403 });
-      }
-
-      const { data, error } = await supabase
-        .from("service_requests")
-        .update({
-          status: "in_service",
-          started_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", serviceReq.id)
-        .select()
-        .single();
-
-      if (error) {
-        return NextResponse.json({ error: "ไม่สามารถเปลี่ยนสถานะได้: " + error.message }, { status: 500 });
-      }
-      return NextResponse.json({ success: true, data });
-    }
-
-    if (action === "complete") {
-      if (serviceReq.companion_id !== user.id && role !== "admin") {
-        return NextResponse.json({ error: "ไม่มีสิทธิ์จบงานนี้" }, { status: 403 });
-      }
-
-      const { data, error } = await supabase
-        .from("service_requests")
-        .update({
-          status: "completed",
-          completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", serviceReq.id)
-        .select()
-        .single();
-
-      if (error) {
-        return NextResponse.json({ error: "ไม่สามารถจบงานได้: " + error.message }, { status: 500 });
-      }
-      return NextResponse.json({ success: true, data });
-    }
-
-    return NextResponse.json({ error: "การกระทำไม่ถูกต้อง" }, { status: 400 });
-  } catch {
+    if (!data) return NextResponse.json({ error: "งานนี้ถูกผู้ใช้อื่นเปลี่ยนสถานะแล้ว กรุณาโหลดหน้าใหม่" }, { status: 409 });
+    return NextResponse.json({ success: true, data });
+  } catch (error) {
+    console.error("request action failed", error);
     return NextResponse.json({ error: "เกิดข้อผิดพลาดภายในระบบ" }, { status: 500 });
   }
 }

@@ -269,6 +269,58 @@ export async function getCompanionDashboardData(companionId: string) {
   }
 }
 
+export interface CompanionProfileOwnerView {
+  id: string;
+  fullName: string;
+  serviceArea: string;
+  bio: string;
+  verificationStatus: "pending" | "approved" | "rejected";
+  experienceYears: number;
+  skills: string[];
+  languages: string[];
+  hourlyRate: number;
+  transportation: string;
+  available: boolean;
+}
+
+export async function getCompanionProfileOwner(
+  companionId: string,
+): Promise<CompanionProfileOwnerView | null> {
+  try {
+    const supabase = await createClient();
+    const [{ data: profile, error: profileError }, { data: detail, error: detailError }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, role, service_area, bio, verification_status")
+        .eq("id", companionId)
+        .maybeSingle(),
+      supabase
+        .from("companion_details")
+        .select("experience_years, skills, languages, hourly_rate, transportation, available")
+        .eq("profile_id", companionId)
+        .maybeSingle(),
+    ]);
+
+    if (profileError || detailError || !profile || profile.role !== "companion") return null;
+
+    return {
+      id: profile.id,
+      fullName: profile.full_name,
+      serviceArea: profile.service_area ?? "",
+      bio: profile.bio ?? "",
+      verificationStatus: profile.verification_status,
+      experienceYears: detail?.experience_years ?? 0,
+      skills: detail?.skills ?? [],
+      languages: detail?.languages?.length ? detail.languages : ["ภาษาไทย"],
+      hourlyRate: Number(detail?.hourly_rate ?? 300),
+      transportation: detail?.transportation ?? "",
+      available: detail?.available ?? false,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function getRequestByReference(refOrId: string): Promise<ServiceRequestView | null> {
   try {
     const supabase = await createClient();

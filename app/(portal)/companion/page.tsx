@@ -32,7 +32,7 @@ export default async function CompanionDashboard() {
           </h1>
           <p>ตรวจสอบคำขอใหม่และตารางงานจริงของคุณ</p>
         </div>
-        <AvailabilityToggle initialAvailable={data?.detail?.available ?? true} />
+        <AvailabilityToggle initialAvailable={data?.detail?.available ?? false} />
       </div>
 
       <div className="stats">
@@ -62,7 +62,7 @@ export default async function CompanionDashboard() {
         <div className="stack">
           <div className="section-title">
             <h2>คำขอใหม่ที่รอผู้ช่วย ({openRequests.length})</h2>
-            <span>ตอบกลับเมื่อสะดวก</span>
+            <Link className="text-link" href="/companion/requests">ดูคำขอทั้งหมด</Link>
           </div>
 
           {openRequests.length === 0 ? (
@@ -114,6 +114,7 @@ export default async function CompanionDashboard() {
                 </div>
 
                 <div className="form-actions" style={{ justifyContent: "flex-end" }}>
+                  <Link className="button button-ghost" href={`/companion/jobs/${req.referenceNo}`}>ดูรายละเอียด</Link>
                   <AcceptRequestButton requestId={req.id} />
                 </div>
               </Card>
@@ -136,10 +137,10 @@ export default async function CompanionDashboard() {
                 <MapPin size={17} style={{ display: "inline", verticalAlign: "middle" }} /> {nextJob.destination}
               </p>
               <div className="form-actions">
-                <Link href={`/customer/jobs/${nextJob.referenceNo}`} className="button button-ghost">
+                <Link href={`/companion/jobs/${nextJob.referenceNo}`} className="button button-ghost">
                   ดูรายละเอียดและแชต
                 </Link>
-                <Link href={`/customer/jobs/${nextJob.referenceNo}`} className="button button-primary">
+                <Link href={`/companion/jobs/${nextJob.referenceNo}`} className="button button-primary">
                   <Navigation size={18} /> เริ่มงาน / ติดตามงาน
                 </Link>
               </div>
@@ -192,7 +193,7 @@ export default async function CompanionDashboard() {
                 <div className="appointment" key={j.id} style={{ marginTop: 8 }}>
                   <strong>{formatThaiDate(j.serviceDate)} · {j.startTime} น.</strong>
                   <p>{serviceCategoryLabel[j.category] ?? j.category} · {j.customerName ?? "ผู้ใช้บริการ"}</p>
-                  <Link className="text-link" href={`/customer/jobs/${j.referenceNo}`}>
+                  <Link className="text-link" href={`/companion/jobs/${j.referenceNo}`}>
                     ดูงานนี้
                   </Link>
                 </div>

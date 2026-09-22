@@ -1,77 +1,69 @@
 import { NextResponse } from "next/server";
+
 import { createClient } from "../../../../../lib/supabase/server";
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+async function getAuthorizedRequest(id: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { response: NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 }) };
+
+  let query = supabase.from("service_requests").select("id, customer_id, companion_id");
+  query = id.startsWith("CC-") ? query.eq("reference_no", id) : query.eq("id", id);
+  const { data: serviceReq, error } = await query.maybeSingle();
+  if (error || !serviceReq) return { response: NextResponse.json({ error: "ไม่พบงานนี้" }, { status: 404 }) };
+
+  const isParticipant = serviceReq.customer_id === user.id || serviceReq.companion_id === user.id;
+  if (!isParticipant) {
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (profile?.role !== "admin") return { response: NextResponse.json({ error: "ไม่มีสิทธิ์อ่านข้อความของงานนี้" }, { status: 403 }) };
+  }
+  return { supabase, user, serviceReq };
+}
+
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
+    const auth = await getAuthorizedRequest(id);
+    if ("response" in auth) return auth.response;
 
-    let query = supabase.from("service_requests").select("id");
-    if (id.startsWith("CC-")) {
-      query = query.eq("reference_no", id);
-    } else {
-      query = query.or(`id.eq.${id},reference_no.eq.${id}`);
-    }
-    const { data: serviceReq } = await query.maybeSingle();
-    if (!serviceReq) return NextResponse.json({ error: "ไม่พบงานนี้" }, { status: 404 });
-
-    const { data: messages, error } = await supabase
+    const { data: messages, error } = await auth.supabase
       .from("messages")
       .select("id, sender_id, body, created_at")
-      .eq("request_id", serviceReq.id)
+      .eq("request_id", auth.serviceReq.id)
       .order("created_at", { ascending: true });
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      console.error("messages lookup failed", { requestId: auth.serviceReq.id, error: error.code });
+      return NextResponse.json({ error: "ไม่สามารถโหลดข้อความได้" }, { status: 500 });
+    }
     return NextResponse.json({ messages });
-  } catch {
-    return NextResponse.json({ error: "เกิดข้อผิดพลาด" }, { status: 500 });
+  } catch (error) {
+    console.error("messages GET failed", error);
+    return NextResponse.json({ error: "เกิดข้อผิดพลาดภายในระบบ" }, { status: 500 });
   }
 }
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
-    const text = body.message?.trim();
+    const text = typeof body.message === "string" ? body.message.trim() : "";
     if (!text) return NextResponse.json({ error: "กรุณาใส่ข้อความ" }, { status: 400 });
+    if (text.length > 2000) return NextResponse.json({ error: "ข้อความยาวเกิน 2,000 ตัวอักษร" }, { status: 400 });
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
-
-    let query = supabase.from("service_requests").select("id, customer_id, companion_id");
-    if (id.startsWith("CC-")) {
-      query = query.eq("reference_no", id);
-    } else {
-      query = query.or(`id.eq.${id},reference_no.eq.${id}`);
-    }
-    const { data: serviceReq } = await query.maybeSingle();
-    if (!serviceReq) return NextResponse.json({ error: "ไม่พบงานนี้" }, { status: 404 });
-
-    const isParticipant = serviceReq.customer_id === user.id || serviceReq.companion_id === user.id;
-    if (!isParticipant) {
-      return NextResponse.json({ error: "ไม่มีสิทธิ์ส่งข้อความในงานนี้" }, { status: 403 });
-    }
-
-    const { data: message, error } = await supabase
+    const auth = await getAuthorizedRequest(id);
+    if ("response" in auth) return auth.response;
+    const { data: message, error } = await auth.supabase
       .from("messages")
-      .insert({
-        request_id: serviceReq.id,
-        sender_id: user.id,
-        body: text,
-      })
-      .select()
+      .insert({ request_id: auth.serviceReq.id, sender_id: auth.user.id, body: text })
+      .select("id, sender_id, body, created_at")
       .single();
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      console.error("message insert failed", { requestId: auth.serviceReq.id, error: error.code });
+      return NextResponse.json({ error: "ไม่สามารถส่งข้อความได้" }, { status: 500 });
+    }
     return NextResponse.json({ success: true, message }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "เกิดข้อผิดพลาด" }, { status: 500 });
+  } catch (error) {
+    console.error("messages POST failed", error);
+    return NextResponse.json({ error: "เกิดข้อผิดพลาดภายในระบบ" }, { status: 500 });
   }
 }

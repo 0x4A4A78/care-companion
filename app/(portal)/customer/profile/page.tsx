@@ -30,14 +30,14 @@ export default async function CustomerProfilePage() {
       familyContact: null,
     };
     return (
-      <div className="page-wrap">
+      <div className="page-wrap customer-profile-page">
         <ProfileEditor initialProfile={fallbackProfile} />
       </div>
     );
   }
 
   return (
-    <div className="page-wrap">
+    <div className="page-wrap customer-profile-page">
       <ProfileEditor initialProfile={profile} />
     </div>
   );

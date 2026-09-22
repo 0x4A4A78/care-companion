@@ -52,10 +52,12 @@ export function JobChatSection({
   requestId,
   companionName,
   initialMessages,
+  title = "ข้อความกับผู้ช่วย",
 }: {
   requestId: string;
   companionName?: string;
   initialMessages: { id: number; sender_id: string; body: string; created_at: string }[];
+  title?: string;
 }) {
   const [messages, setMessages] = useState(initialMessages);
   const [text, setText] = useState("");
@@ -92,7 +94,7 @@ export function JobChatSection({
   return (
     <div className="form-card" style={{ marginTop: 20 }}>
       <h2>
-        <MessageCircle size={22} style={{ verticalAlign: "middle", display: "inline" }} /> ข้อความกับผู้ช่วย
+        <MessageCircle size={22} style={{ verticalAlign: "middle", display: "inline" }} /> {title}
       </h2>
       <div style={{ display: "grid", gap: 10, margin: "14px 0" }}>
         {messages.length === 0 ? (

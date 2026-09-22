@@ -1,13 +1,12 @@
 "use client";
 
-import { Bell, CalendarDays, CircleHelp, ClipboardList, Home, LogOut, Mic, Search, Settings, ShieldCheck, UserRound, UsersRound, WalletCards, X } from "lucide-react";
+import { Bell, CalendarDays, CircleHelp, ClipboardList, Home, LogOut, Search, Settings, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, type ReactNode, useContext, useState } from "react";
 import { createClient } from "../lib/supabase/client";
 import { Brand } from "./brand";
 import { Avatar } from "./ui";
-import { VoiceAssistant } from "./voice-assistant";
 
 type Role = "customer" | "companion" | "admin";
 
@@ -18,9 +17,8 @@ const nav = {
     ["/customer/profile", "โปรไฟล์", UserRound],
   ],
   companion: [
-    ["/companion", "หน้าหลัก", Home], ["/companion", "คำขอใหม่", ClipboardList],
-    ["/companion", "ตารางเวลา", CalendarDays], ["/companion", "งานของฉัน", UsersRound],
-    ["/companion", "รายได้", WalletCards],
+    ["/companion", "หน้าหลัก", Home], ["/companion/requests", "คำขอใหม่", ClipboardList],
+    ["/companion/jobs", "งานของฉัน", CalendarDays], ["/companion/profile", "โปรไฟล์", UserRound],
   ],
   admin: [
     ["/admin", "ภาพรวม", Home], ["/admin", "ผู้ใช้งาน", UsersRound],
@@ -50,9 +48,7 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const meta = roleMeta[role];
-  const mobileItems = role === "customer"
-    ? [...nav[role].slice(0, 2), null, ...nav[role].slice(2, 4)]
-    : [...nav[role].slice(0, 4)];
+  const mobileItems = [...nav[role].slice(0, 4)];
 
   const isActive = (href: string, index: number) =>
     index === 0
@@ -103,13 +99,13 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
                     ไม่มีการแจ้งเตือนใหม่ในขณะนี้
                   </p>
                   <small style={{ display: "block", marginTop: 4, fontSize: ".8rem", lineHeight: 1.4 }}>
-                    เมื่อมีผู้ดูแลตอบรับงาน หรือมีข้อความใหม่ ระบบจะแจ้งเตือนให้ทราบที่นี่ค่ะ
+                    เมื่อมีผู้ดูแลตอบรับงาน หรือมีข้อความใหม่ ระบบจะแจ้งเตือนให้ทราบที่นี่ครับ
                   </small>
                 </div>
               </div>
             </div>
           )}
-          <Link href={role === "customer" ? "/customer/profile" : `/${role}`} className="user-chip" style={{ textDecoration: "none", color: "inherit", cursor: "pointer" }} title="ดูโปรไฟล์และข้อมูลสุขภาพ"><Avatar name={userName} tone={meta.tone} /><span><strong>{userName}</strong><small>{meta.label}</small></span></Link>
+          <Link href={role === "customer" ? "/customer/profile" : role === "companion" ? "/companion/profile" : `/${role}`} className="user-chip" style={{ textDecoration: "none", color: "inherit", cursor: "pointer" }} title="ดูโปรไฟล์"><Avatar name={userName} tone={meta.tone} /><span><strong>{userName}</strong><small>{meta.label}</small></span></Link>
         </div>
       </header>
       <aside className="sidebar">
@@ -118,28 +114,18 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
             const active = isActive(href, index);
             return <Link key={`${label}-${index}`} href={href} className={active ? "active" : ""}><Icon size={23} /><span>{label}</span></Link>;
           })}
-          {role === "customer" && (
-            <Link href="/customer/request?voice=1" className={pathname.includes("voice") ? "active" : ""}>
-              <Mic size={23} /><span>พูดบอกเรา</span>
-            </Link>
-          )}
         </nav>
         <div className="sidebar-bottom"><Link href="/"><CircleHelp size={22} />ความช่วยเหลือ</Link><button type="button" onClick={signOut} disabled={signingOut}><LogOut size={22} />{signingOut ? "กำลังออกจากระบบ..." : "ออกจากระบบ"}</button></div>
       </aside>
       <main className="portal-main">{children}</main>
-      <nav className={`mobile-nav ${role === "customer" ? "customer-mobile-nav" : ""}`} aria-label="เมนูมือถือ">
+      <nav className="mobile-nav" aria-label="เมนูมือถือ">
         {mobileItems.map((item, index) => {
-          if (!item) {
-            return <span key="voice-slot" className="mobile-voice-slot" aria-hidden="true" />;
-          }
-
           const [href, label, Icon] = item;
-          const navIndex = role === "customer" && index > 2 ? index - 1 : index;
           return (
             <Link
               key={`${label}-${index}`}
               href={href}
-              className={isActive(href, navIndex) ? "active" : ""}
+              className={isActive(href, index) ? "active" : ""}
             >
               <Icon size={21} />
               <span>{label}</span>
@@ -147,7 +133,6 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
           );
         })}
       </nav>
-      {role === "customer" && <VoiceAssistant />}
     </div></PortalUserContext.Provider>
   );
 }

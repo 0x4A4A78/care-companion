@@ -168,17 +168,9 @@ export function ProfileEditor({
   };
 
   return (
-    <div className="stack" style={{ gap: 24 }}>
+    <div className="stack customer-profile" style={{ gap: 24 }}>
       {/* Action bar */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
+      <div className="profile-action-bar">
         <div>
           <h1 style={{ margin: 0, fontSize: "1.8rem" }}>โปรไฟล์และข้อมูลสุขภาพ</h1>
           <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>
@@ -194,7 +186,7 @@ export function ProfileEditor({
             <Edit3 size={18} /> แก้ไขข้อมูลโปรไฟล์
           </button>
         ) : (
-          <div style={{ display: "flex", gap: 10 }}>
+          <div className="profile-action-buttons">
             <button
               className="button button-ghost"
               onClick={handleCancel}
@@ -495,7 +487,7 @@ export function ProfileEditor({
           </Card>
 
           {/* Save & Cancel */}
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 10 }}>
+          <div className="profile-save-actions">
             <button
               type="button"
               className="button button-ghost"
@@ -508,7 +500,6 @@ export function ProfileEditor({
               type="submit"
               className="button button-primary button-large"
               disabled={saving}
-              style={{ minWidth: 200 }}
             >
               <Save size={20} /> {saving ? "กำลังบันทึก..." : "บันทึกข้อมูลทั้งหมด"}
             </button>
@@ -518,17 +509,10 @@ export function ProfileEditor({
         /* ───────────── VIEW MODE ───────────── */
         <div className="stack" style={{ gap: 20 }}>
           {/* Personal Card */}
-          <Card className="form-card">
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 18,
-                flexWrap: "wrap",
-              }}
-            >
+          <Card className="form-card profile-personal-card">
+            <div className="profile-personal-summary">
               <Avatar name={profile.fullName} large tone="rose" />
-              <div style={{ flex: 1 }}>
+              <div className="profile-personal-details">
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <h2 style={{ margin: 0, fontSize: "1.4rem" }}>{profile.fullName}</h2>
                   <Badge tone="blue">ผู้ใช้บริการ</Badge>
@@ -564,16 +548,9 @@ export function ProfileEditor({
           </Card>
 
           {/* Health & Safety Highlights */}
-          <div className="grid-main" style={{ gridTemplateColumns: "1.4fr 1fr" }}>
-            <Card className="form-card" style={{ borderLeft: "4px solid #e11d48" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 16,
-                }}
-              >
+          <div className="profile-overview-grid">
+            <Card className="form-card profile-health-card" style={{ borderLeft: "4px solid #e11d48" }}>
+              <div className="profile-card-heading">
                 <h3
                   style={{
                     margin: 0,
@@ -656,13 +633,7 @@ export function ProfileEditor({
                 </div>
 
                 {/* Blood type & Mobility row */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 10,
-                  }}
-                >
+                <div className="profile-vitals-grid">
                   <div
                     style={{
                       padding: "10px 14px",
@@ -717,7 +688,7 @@ export function ProfileEditor({
             </Card>
 
             {/* Family & Emergency Contact Card */}
-            <Card className="form-card" style={{ borderLeft: "4px solid #16a34a" }}>
+            <Card className="form-card profile-family-card" style={{ borderLeft: "4px solid #16a34a" }}>
               <h3
                 style={{
                   margin: "0 0 14px",
@@ -734,6 +705,7 @@ export function ProfileEditor({
               {profile.familyContact?.name || profile.familyContact?.phone ? (
                 <div className="stack" style={{ gap: 12 }}>
                   <div
+                    className="profile-contact-note"
                     style={{
                       padding: "16px",
                       borderRadius: 14,

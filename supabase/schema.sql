@@ -183,6 +183,35 @@ $$;
 revoke all on function public.list_open_requests_for_companion(integer) from public, anon;
 grant execute on function public.list_open_requests_for_companion(integer) to authenticated;
 
+create or replace function public.accept_open_request_for_companion(target_request_id uuid)
+returns setof public.service_requests
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null or not exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid() and p.role = 'companion' and p.is_active = true
+  ) then
+    raise exception 'companion access required' using errcode = '42501';
+  end if;
+
+  return query
+  update public.service_requests
+  set companion_id = auth.uid(), status = 'accepted',
+      accepted_at = now(), updated_at = now()
+  where id = target_request_id
+    and status = 'requested'
+    and companion_id is null
+  returning *;
+end;
+$$;
+
+revoke all on function public.accept_open_request_for_companion(uuid) from public, anon;
+grant execute on function public.accept_open_request_for_companion(uuid) to authenticated;
+
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('verification-documents', 'verification-documents', false, 5242880, array['image/jpeg','image/png','application/pdf'])
 on conflict (id) do nothing;

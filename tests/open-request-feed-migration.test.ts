@@ -20,4 +20,12 @@ describe("Companion open request feed migration", () => {
     expect(sql).toContain("r.status = 'requested'");
     expect(sql).toContain("r.companion_id is null");
   });
+
+  it("accepts an open job atomically for the authenticated companion", () => {
+    expect(sql).toContain("accept_open_request_for_companion");
+    expect(sql).toContain("set companion_id = auth.uid()");
+    expect(sql).toContain("and status = 'requested'");
+    expect(sql).toContain("and companion_id is null");
+    expect(sql).toContain("grant execute on function public.accept_open_request_for_companion");
+  });
 });

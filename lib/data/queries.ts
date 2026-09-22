@@ -193,13 +193,42 @@ export async function getCustomerDashboardData(customerId: string) {
 export async function getOpenRequests(limit = 10): Promise<ServiceRequestView[]> {
   try {
     const supabase = await createClient();
-    const { data } = await supabase
+    const safeLimit = Math.max(1, Math.min(limit, 100));
+    const { data: feedRows, error: feedError } = await supabase.rpc(
+      "list_open_requests_for_companion",
+      { result_limit: safeLimit },
+    );
+
+    if (!feedError && feedRows) {
+      return (feedRows as (RequestRow & { customer_name: string })[]).map((row) => ({
+        ...mapRequest(row),
+        customerName: row.customer_name,
+      }));
+    }
+
+    // Compatibility fallback while an existing Supabase project is waiting for
+    // migration_open_request_feed.sql to be applied.
+    const { data, error } = await supabase
       .from("service_requests")
       .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, destination, support_needs, notes, status, created_at")
       .eq("status", "requested")
       .is("companion_id", null)
       .order("created_at", { ascending: false })
-      .limit(limit);
+      .limit(safeLimit);
+
+    if (error) {
+      console.error("Open request feed failed", {
+        rpcCode: feedError?.code,
+        fallbackCode: error.code,
+      });
+      return [];
+    }
+
+    if (feedError) {
+      console.warn("Open request RPC unavailable; using RLS fallback", {
+        code: feedError.code,
+      });
+    }
 
     const requests = ((data ?? []) as RequestRow[]).map(mapRequest);
     const customerIds = [...new Set(requests.map((r) => r.customerId))];

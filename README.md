@@ -41,6 +41,7 @@ npm run dev -- -p 3001
 7. คัดลอก `.env.example` เป็น `.env.local` แล้วใส่ Project URL และ Publishable key จาก Supabase
 8. รีสตาร์ต dev server หลังแก้ environment variables
 9. กำหนด Admin จาก SQL Editor หรือ secure server process เท่านั้น ห้ามเปิดให้เลือก Admin จากหน้าสมัคร
+10. หากเป็นฐานข้อมูลเดิม ให้รัน `supabase/migration_open_request_feed.sql` เพื่อให้ Companion เห็นคำขอใหม่ และรัน `supabase/migration_companion_workflow_security.sql` เพื่อเปิดกฎความปลอดภัยของขั้นตอนงาน
 
 ## ตรวจคุณภาพ
 

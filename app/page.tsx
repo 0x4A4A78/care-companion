@@ -13,7 +13,7 @@ const services = [
 export default function Home() {
   return (
     <div className="landing">
-      <header className="public-nav"><Brand /><nav><a href="#voice">AI ผู้ช่วย</a><a href="#how">วิธีใช้งาน</a><a href="#service">บริการของเรา</a><a href="#safety">ความปลอดภัย</a></nav><div className="nav-actions"><Link className="button button-ghost" href="/login">เข้าสู่ระบบ</Link><Link className="button button-primary" href="/login">เริ่มใช้งาน</Link></div></header>
+      <header className="public-nav"><Brand /><nav><a href="#voice">AI ผู้ช่วย</a><a href="#how">วิธีใช้งาน</a><a href="#service">บริการของเรา</a><a href="#safety">ความปลอดภัย</a></nav><div className="nav-actions"><Link className="button button-ghost" href="/admin" style={{ borderColor: "#cce0ff", background: "#f0f6ff", color: "var(--blue)", display: "inline-flex", alignItems: "center", gap: 6 }}><ShieldCheck size={16} /> แอดมิน (Admin)</Link><Link className="button button-ghost" href="/login">เข้าสู่ระบบ</Link><Link className="button button-primary" href="/login">เริ่มใช้งาน</Link></div></header>
       <main>
         <section className="hero">
           <div className="hero-copy"><Badge tone="green"><BadgeCheck size={17} /> แพลตฟอร์มช่วยเดินทางที่ไว้ใจได้</Badge><h1>ทุกการเดินทาง<br /><span>มีเพื่อนเคียงข้าง</span></h1><p>ค้นหาผู้ช่วยร่วมเดินทางสำหรับไปพบแพทย์ ไปธนาคาร ติดต่อราชการ หรือทำธุระนอกบ้าน ให้คุณและครอบครัวสบายใจมากขึ้น</p><div className="hero-actions"><Link className="button button-primary button-large" href="/login">ขอผู้ช่วยเดินทาง <ArrowRight size={22} /></Link><a className="button button-ghost button-large" href="#voice">ลองพูดบอกเรา <Mic size={20} /></a></div><div className="trust-row"><span><ShieldCheck />ตรวจสอบตัวตน</span><span><UsersRound />เลือกผู้ช่วยได้</span><span><HeartHandshake />ดูแลตลอดงาน</span></div></div>
@@ -45,7 +45,7 @@ export default function Home() {
         <section id="how" className="section how"><div className="section-heading"><span>ง่ายเพียง 3 ขั้นตอน</span><h2>เริ่มต้นใช้งานได้ทันที</h2></div><div className="steps">{[["1","บอกความต้องการ","พูดหรือพิมพ์ — ระบุธุระ วัน เวลา สถานที่"],["2","เลือกผู้ช่วย","ดูโปรไฟล์ ประสบการณ์ ราคา และรีวิว"],["3","เดินทางอย่างสบายใจ","ติดตามสถานะ ติดต่อผู้ช่วย และยืนยันเมื่อจบงาน"]].map(([n,t,d])=><div className="step" key={n}><b>{n}</b><h3>{t}</h3><p>{d}</p></div>)}</div></section>
         <section id="safety" className="safety-section"><div><ShieldCheck size={44}/><span><strong>ขอบเขตบริการที่ชัดเจน</strong><p>Companion ให้ความช่วยเหลือด้านการเดินทางและการทำธุระทั่วไปเท่านั้น ไม่ใช่บุคลากรทางการแพทย์หรือผู้ดูแลรักษาผู้ป่วย</p></span></div><Link href="/login" className="button button-white">ทดลองใช้งาน</Link></section>
       </main>
-      <footer><Brand/><p>หากมีเหตุฉุกเฉินหรือมีอาการเจ็บป่วย กรุณาติดต่อ 1669 หรือสถานพยาบาลโดยตรง</p><small>© 2026 Care Companion · โครงงาน Web Application</small></footer>
+      <footer><Brand/><p>หากมีเหตุฉุกเฉินหรือมีอาการเจ็บป่วย กรุณาติดต่อ 1669 หรือสถานพยาบาลโดยตรง</p><div style={{margin:"10px 0"}}><Link href="/admin" className="text-link" style={{fontSize:".88rem",display:"inline-flex",alignItems:"center",gap:5}}><ShieldCheck size={15}/> เข้าสู่ระบบผู้ดูแล (Admin Console สำหรับทดสอบ)</Link></div><small>© 2026 Care Companion · โครงงาน Web Application</small></footer>
     </div>
   );
 }

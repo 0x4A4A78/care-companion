@@ -1,5 +1,11 @@
-import { AuthenticatedPortal } from "../../../components/authenticated-portal";
+import { PortalShell } from "../../../components/portal-shell";
+import { getPortalUser } from "../../../lib/auth/portal-user";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <AuthenticatedPortal role="admin">{children}</AuthenticatedPortal>;
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const user = await getPortalUser();
+  return (
+    <PortalShell role="admin" userName={user?.name ?? "ผู้ดูแลระบบ (Admin Demo)"}>
+      {children}
+    </PortalShell>
+  );
 }

@@ -13,7 +13,7 @@ type Role = "customer" | "companion" | "admin";
 const nav = {
   customer: [
     ["/customer", "หน้าหลัก", Home], ["/customer/request", "ขอผู้ช่วย", ClipboardList],
-    ["/companions", "ค้นหาผู้ช่วย", Search], ["/customer", "งานของฉัน", CalendarDays],
+    ["/companions", "ค้นหาผู้ช่วย", Search], ["/customer/jobs", "งานของฉัน", CalendarDays],
     ["/customer/profile", "โปรไฟล์", UserRound],
   ],
   companion: [

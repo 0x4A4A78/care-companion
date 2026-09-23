@@ -265,6 +265,63 @@ export async function getCompanionRequests(companionId: string): Promise<Service
   }
 }
 
+export interface CustomerRequestHistoryItem extends ServiceRequestView {
+  review?: {
+    id: string;
+    rating: number;
+    comment: string | null;
+    createdAt: string;
+  } | null;
+}
+
+export async function getCustomerRequestsWithReviews(customerId: string): Promise<CustomerRequestHistoryItem[]> {
+  try {
+    const supabase = await createClient();
+    const [{ data: requestsData }, { data: reviewsData }] = await Promise.all([
+      supabase
+        .from("service_requests")
+        .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, destination, support_needs, notes, status, created_at")
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("reviews")
+        .select("id, request_id, rating, comment, created_at")
+        .eq("customer_id", customerId),
+    ]);
+
+    const requests = ((requestsData ?? []) as RequestRow[]).map(mapRequest);
+    const companionIds = [...new Set(requests.map((r) => r.companionId).filter(Boolean))] as string[];
+
+    if (companionIds.length) {
+      const { data: companions } = await supabase.from("profiles").select("id, full_name").in("id", companionIds);
+      const companionMap = new Map((companions ?? []).map((c) => [c.id, c.full_name]));
+      requests.forEach((r) => {
+        if (r.companionId) r.companionName = companionMap.get(r.companionId);
+      });
+    }
+
+    const reviewMap = new Map(
+      (reviewsData ?? []).map((rev) => [
+        rev.request_id,
+        {
+          id: rev.id,
+          rating: Number(rev.rating),
+          comment: rev.comment,
+          createdAt: rev.created_at,
+        },
+      ]),
+    );
+
+    return requests.map((req) => ({
+      ...req,
+      review: reviewMap.get(req.id) ?? null,
+    }));
+  } catch (error) {
+    console.error("getCustomerRequestsWithReviews error:", error);
+    return [];
+  }
+}
+
 export async function getCompanionDashboardData(companionId: string) {
   try {
     const supabase = await createClient();

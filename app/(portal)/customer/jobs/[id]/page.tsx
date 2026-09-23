@@ -10,15 +10,19 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar, Badge, Card } from "../../../../../components/ui";
+import { getPortalUser } from "../../../../../lib/auth/portal-user";
 import { formatThaiDate, serviceCategoryLabel } from "../../../../../lib/data/presentation";
 import { getRequestByReference, getRequestMessages } from "../../../../../lib/data/queries";
+import { createClient } from "../../../../../lib/supabase/server";
 import { CancelRequestButton, JobChatSection } from "./job-actions";
+import { JobDetailReviewSection } from "./job-review-action";
 
 export default async function JobDetail({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const user = await getPortalUser();
   const { id } = await params;
   const request = await getRequestByReference(id);
 
@@ -43,6 +47,23 @@ export default async function JobDetail({
 
   const messages = await getRequestMessages(request.id);
   const canCancel = ["requested", "accepted"].includes(request.status);
+
+  let initialReview: { rating: number; comment: string | null } | null = null;
+  if (request.status === "completed" && request.companionId) {
+    try {
+      const supabase = await createClient();
+      const { data: revData } = await supabase
+        .from("reviews")
+        .select("rating, comment")
+        .eq("request_id", request.id)
+        .maybeSingle();
+      if (revData) {
+        initialReview = { rating: Number(revData.rating), comment: revData.comment };
+      }
+    } catch {
+      // ignore lookup error
+    }
+  }
 
   return (
     <div className="page-wrap">
@@ -132,10 +153,21 @@ export default async function JobDetail({
             )}
           </Card>
 
+          {request.status === "completed" && request.companionId && (
+            <JobDetailReviewSection
+              requestId={request.id}
+              referenceNo={request.referenceNo}
+              companionName={request.companionName}
+              initialReview={initialReview}
+            />
+          )}
+
           <JobChatSection
             requestId={request.id}
             companionName={request.companionName}
             initialMessages={messages}
+            currentUserId={user?.id}
+            title="ห้องแชทกับผู้ช่วย"
           />
         </div>
 

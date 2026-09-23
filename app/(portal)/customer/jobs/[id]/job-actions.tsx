@@ -2,8 +2,10 @@
 
 import { MessageCircle, Send, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Avatar } from "../../../../../components/ui";
+import { createClient } from "../../../../../lib/supabase/client";
 
 export function CancelRequestButton({
   requestId,
@@ -50,18 +52,102 @@ export function CancelRequestButton({
 
 export function JobChatSection({
   requestId,
-  companionName,
+  companionName = "คู่สนทนา",
   initialMessages,
-  title = "ข้อความกับผู้ช่วย",
+  currentUserId,
+  title = "ห้องแชท",
 }: {
   requestId: string;
   companionName?: string;
   initialMessages: { id: number; sender_id: string; body: string; created_at: string }[];
+  currentUserId?: string;
   title?: string;
 }) {
   const [messages, setMessages] = useState(initialMessages);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [activeUserId, setActiveUserId] = useState<string | undefined>(currentUserId);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  // Real-time Supabase subscription
+  useEffect(() => {
+    let active = true;
+    let supabase: ReturnType<typeof createClient> | null = null;
+    try {
+      supabase = createClient();
+    } catch {
+      // client env not configured
+    }
+
+    if (supabase) {
+      if (!activeUserId) {
+        supabase.auth.getUser().then(({ data }) => {
+          if (active && data.user) {
+            setActiveUserId(data.user.id);
+          }
+        });
+      }
+
+      const channel = supabase
+        .channel(`chat:${requestId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `request_id=eq.${requestId}`,
+          },
+          (payload) => {
+            const newMsg = payload.new as {
+              id: number;
+              sender_id: string;
+              body: string;
+              created_at: string;
+            };
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg];
+            });
+          },
+        )
+        .subscribe();
+
+      return () => {
+        active = false;
+        supabase?.removeChannel(channel);
+      };
+    }
+  }, [requestId, activeUserId]);
+
+  // Smart polling fallback (every 3.5s) to guarantee real-time updates even without WebSocket
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/requests/${requestId}/messages`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.messages)) {
+            setMessages((prev) => {
+              if (data.messages.length !== prev.length) {
+                return data.messages;
+              }
+              return prev;
+            });
+          }
+        }
+      } catch {
+        // silent fallback
+      }
+    }, 3500);
+
+    return () => clearInterval(timer);
+  }, [requestId]);
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
@@ -79,9 +165,9 @@ export function JobChatSection({
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "ส่งข้อความไม่สำเร็จ");
 
-      setMessages((prev) => [...prev, result.message]);
-      toast.success("ส่งข้อความแล้ว", {
-        description: companionName ? `${companionName} ได้รับข้อความแล้ว` : undefined,
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === result.message.id)) return prev;
+        return [...prev, result.message];
       });
     } catch (err: unknown) {
       toast.error((err as Error).message || "เกิดข้อผิดพลาดในการส่งข้อความ");
@@ -92,47 +178,91 @@ export function JobChatSection({
   }
 
   return (
-    <div className="form-card" style={{ marginTop: 20 }}>
-      <h2>
-        <MessageCircle size={22} style={{ verticalAlign: "middle", display: "inline" }} /> {title}
-      </h2>
-      <div style={{ display: "grid", gap: 10, margin: "14px 0" }}>
-        {messages.length === 0 ? (
-          <p style={{ color: "var(--muted)", fontStyle: "italic" }}>
-            ยังไม่มีข้อความ สามารถพิมพ์เพื่อสอบถามหรือแจ้งรายละเอียดเพิ่มเติมแก่ผู้ช่วยได้
-          </p>
-        ) : (
-          messages.map((m) => (
-            <div
-              key={m.id}
-              className="appointment"
-              style={{ background: "#f1f5f9" }}
-            >
-              <p style={{ margin: 0, color: "var(--navy)", fontSize: ".95rem" }}>{m.body}</p>
-              <small style={{ color: "var(--muted)", fontSize: ".75rem" }}>
-                {new Date(m.created_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.
-              </small>
-            </div>
-          ))
-        )}
+    <div className="line-chat-wrapper" style={{ marginTop: 20 }}>
+      {/* LINE Chat Header */}
+      <div className="line-chat-header">
+        <div className="line-chat-header-info">
+          <MessageCircle size={22} style={{ color: "var(--blue)" }} />
+          <div>
+            <h3>{title}</h3>
+            <span className="line-chat-partner">
+              กำลังสนทนากับ <strong>{companionName}</strong>
+            </span>
+          </div>
+        </div>
+        <div className="line-chat-status-pill">
+          <span className="online-dot" />
+          <span>เรียลไทม์</span>
+        </div>
       </div>
-      <form onSubmit={sendMessage} className="form-grid" style={{ marginTop: 15 }}>
-        <label className="field" style={{ flex: 1 }}>
-          <span className="sr-only">ข้อความ</span>
-          <input
-            placeholder={companionName ? `พิมพ์ข้อความถึง ${companionName}...` : "พิมพ์ข้อความ..."}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            disabled={sending}
-          />
-        </label>
+
+      {/* LINE Chat Messages Area */}
+      <div className="line-chat-body" aria-live="polite">
+        {messages.length === 0 ? (
+          <div className="line-chat-empty">
+            <p>ยังไม่มีข้อความในห้องนี้</p>
+            <small>พิมพ์ข้อความด้านล่างเพื่อนัดหมายหรือสอบถามได้ทันทีค่ะ</small>
+          </div>
+        ) : (
+          messages.map((m) => {
+            const isMe = Boolean(activeUserId && m.sender_id === activeUserId);
+            const timeStr = new Date(m.created_at).toLocaleTimeString("th-TH", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            if (isMe) {
+              return (
+                <div key={m.id} className="line-chat-row me">
+                  <span className="line-chat-time me">{timeStr} น.</span>
+                  <div className="line-chat-bubble me">
+                    <p>{m.body}</p>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div key={m.id} className="line-chat-row peer">
+                <Avatar name={companionName.slice(0, 2)} tone="green" />
+                <div className="line-chat-peer-content">
+                  <span className="line-chat-sender-name">{companionName}</span>
+                  <div className="line-chat-peer-bubble-row">
+                    <div className="line-chat-bubble peer">
+                      <p>{m.body}</p>
+                    </div>
+                    <span className="line-chat-time peer">{timeStr} น.</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* LINE Chat Composer */}
+      <form onSubmit={sendMessage} className="line-chat-composer">
+        <input
+          placeholder={companionName ? `พิมพ์ข้อความถึง ${companionName}...` : "พิมพ์ข้อความ..."}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage(e);
+            }
+          }}
+          disabled={sending}
+          maxLength={2000}
+        />
         <button
           type="submit"
-          className="button button-primary"
+          className="line-chat-send-btn"
           disabled={sending || !text.trim()}
-          style={{ minWidth: 120 }}
+          aria-label="ส่งข้อความ"
         >
-          <Send size={16} /> {sending ? "กำลังส่ง..." : "ส่งข้อความ"}
+          <Send size={18} />
         </button>
       </form>
     </div>

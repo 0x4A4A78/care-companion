@@ -46,9 +46,18 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const meta = roleMeta[role];
-  const mobileItems = [...nav[role].slice(0, 4)];
+  const mobileItems = nav[role];
+
+  // Close popovers on navigation
+  const [prevPath, setPrevPath] = useState(pathname);
+  if (pathname !== prevPath) {
+    setPrevPath(pathname);
+    setShowNotifications(false);
+    setShowUserMenu(false);
+  }
 
   const isActive = (href: string, index: number) =>
     index === 0
@@ -62,6 +71,8 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
     router.refresh();
   }
 
+  const profileHref = role === "customer" ? "/customer/profile" : role === "companion" ? "/companion/profile" : "/admin/settings";
+
   return (
     <PortalUserContext.Provider value={{ name: userName, role }}><div className="portal">
       <header className="topbar">
@@ -73,12 +84,14 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
             aria-label="การแจ้งเตือน"
             onClick={() => {
               setShowNotifications(!showNotifications);
+              setShowUserMenu(false);
               if (unreadCount > 0) setUnreadCount(0);
             }}
           >
             <Bell size={23} />
             {unreadCount > 0 && <span className="notification-dot">{unreadCount}</span>}
           </button>
+
           {showNotifications && (
             <div className="notifications-popover">
               <div className="notifications-popover-header">
@@ -105,7 +118,73 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
               </div>
             </div>
           )}
-          <Link href={role === "customer" ? "/customer/profile" : role === "companion" ? "/companion/profile" : `/${role}`} className="user-chip" style={{ textDecoration: "none", color: "inherit", cursor: "pointer" }} title="ดูโปรไฟล์"><Avatar name={userName} tone={meta.tone} /><span><strong>{userName}</strong><small>{meta.label}</small></span></Link>
+
+          {/* User Chip with Toggle Popover */}
+          <button
+            type="button"
+            className="user-chip-button"
+            onClick={() => {
+              setShowUserMenu(!showUserMenu);
+              setShowNotifications(false);
+            }}
+            aria-label="เมนูผู้ใช้งาน"
+            aria-expanded={showUserMenu}
+          >
+            <Avatar name={userName} tone={meta.tone} />
+            <span className="user-chip-text">
+              <strong>{userName}</strong>
+              <small>{meta.label}</small>
+            </span>
+          </button>
+
+          {/* User Menu Popover (Especially important on Mobile) */}
+          {showUserMenu && (
+            <div className="user-menu-popover">
+              <div className="user-menu-header">
+                <Avatar name={userName} tone={meta.tone} />
+                <div>
+                  <strong style={{ display: "block", fontSize: ".95rem", color: "var(--navy)" }}>{userName}</strong>
+                  <span className={`badge badge-${meta.tone}`} style={{ marginTop: 2 }}>{meta.label}</span>
+                </div>
+              </div>
+              <div className="user-menu-list">
+                <Link
+                  href={profileHref}
+                  className="user-menu-item"
+                  onClick={() => setShowUserMenu(false)}
+                >
+                  <UserRound size={18} />
+                  <span>โปรไฟล์และการตั้งค่า</span>
+                </Link>
+                <Link
+                  href={`/${role}`}
+                  className="user-menu-item"
+                  onClick={() => setShowUserMenu(false)}
+                >
+                  <Home size={18} />
+                  <span>แดชบอร์ดหลัก ({meta.label})</span>
+                </Link>
+                <Link
+                  href="/"
+                  className="user-menu-item"
+                  onClick={() => setShowUserMenu(false)}
+                >
+                  <CircleHelp size={18} />
+                  <span>หน้าแรก Care Companion</span>
+                </Link>
+                <hr style={{ margin: "6px 0", border: "none", borderTop: "1px solid var(--line)" }} />
+                <button
+                  type="button"
+                  className="user-menu-item sign-out"
+                  onClick={signOut}
+                  disabled={signingOut}
+                >
+                  <LogOut size={18} />
+                  <span>{signingOut ? "กำลังออกจากระบบ..." : "ออกจากระบบ"}</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
       <aside className="sidebar">
@@ -118,7 +197,11 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
         <div className="sidebar-bottom"><Link href="/"><CircleHelp size={22} />ความช่วยเหลือ</Link><button type="button" onClick={signOut} disabled={signingOut}><LogOut size={22} />{signingOut ? "กำลังออกจากระบบ..." : "ออกจากระบบ"}</button></div>
       </aside>
       <main className="portal-main">{children}</main>
-      <nav className="mobile-nav" aria-label="เมนูมือถือ">
+      <nav
+        className="mobile-nav"
+        style={{ gridTemplateColumns: `repeat(${mobileItems.length}, minmax(0, 1fr))` }}
+        aria-label="เมนูมือถือ"
+      >
         {mobileItems.map((item, index) => {
           const [href, label, Icon] = item;
           return (
@@ -127,7 +210,7 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
               href={href}
               className={isActive(href, index) ? "active" : ""}
             >
-              <Icon size={21} />
+              <Icon size={20} />
               <span>{label}</span>
             </Link>
           );

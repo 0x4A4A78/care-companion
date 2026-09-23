@@ -134,7 +134,7 @@ export function SettingsClient({ initialData }: { initialData: AdminSettingsData
       </div>
 
       {/* Grid: Database Status & Env Health */}
-      <div className="grid-2-cols" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
+      <div className="grid-2-cols" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: 20 }}>
         {/* Supabase Status Card */}
         <Card className="data-card">
           <div className="data-card-header">

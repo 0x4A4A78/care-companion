@@ -62,6 +62,7 @@ function LoginContent() {
         </div>
         <GoogleSignIn role={role} />
         <div
+          className="admin-demo-box"
           style={{
             marginTop: 18,
             padding: "14px 16px",

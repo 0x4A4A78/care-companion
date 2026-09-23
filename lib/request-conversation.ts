@@ -25,7 +25,18 @@ export function isValidTime24Hour(value: string) {
   return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
 }
 
-export function getConversationVoicePatch(step: ConversationStep, transcript: string) {
+export type VoicePatch = Partial<{
+  category: "hospital" | "bank" | "government" | "shopping" | "other";
+  serviceDate: string;
+  startTime: string;
+  pickup: string;
+  destination: string;
+  durationHours: number;
+  supportNeeds: string[];
+  notes: string;
+}>;
+
+export function getConversationVoicePatch(step: ConversationStep, transcript: string): VoicePatch {
   const text = transcript.trim();
   if (!text) return {};
   const intent = parseVoiceIntent(text);

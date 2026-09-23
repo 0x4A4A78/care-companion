@@ -1,21 +1,25 @@
 import {
   ArrowRight,
   CalendarDays,
+  Clock,
   Clock3,
   Hand,
   MapPin,
   Navigation,
+  ShieldCheck,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge, Card, Stat } from "../../../components/ui";
 import { getPortalUser } from "../../../lib/auth/portal-user";
 import { formatMoney, formatThaiDate, serviceCategoryLabel } from "../../../lib/data/presentation";
 import { getCompanionDashboardData } from "../../../lib/data/queries";
-import { AcceptRequestButton, AvailabilityToggle } from "./companion-actions";
+import { AcceptRequestButton } from "./companion-actions";
 
 export default async function CompanionDashboard() {
   const user = await getPortalUser();
   const data = user ? await getCompanionDashboardData(user.id) : null;
+  const isApproved = data?.verificationStatus === "approved";
 
   const openRequests = data?.openRequests ?? [];
   const myJobs = data?.myJobs ?? [];
@@ -32,7 +36,31 @@ export default async function CompanionDashboard() {
           </h1>
           <p>ตรวจสอบคำขอใหม่และตารางงานจริงของคุณ</p>
         </div>
-        <AvailabilityToggle initialAvailable={data?.detail?.available ?? false} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Badge
+            tone={
+              data?.verificationStatus === "approved"
+                ? "green"
+                : data?.verificationStatus === "rejected"
+                  ? "red"
+                  : "amber"
+            }
+          >
+            {data?.verificationStatus === "approved" ? (
+              <>
+                <ShieldCheck size={16} /> อนุมัติสิทธิ์แล้ว
+              </>
+            ) : data?.verificationStatus === "rejected" ? (
+              <>
+                <XCircle size={16} /> ไม่ผ่านการอนุมัติ
+              </>
+            ) : (
+              <>
+                <Clock size={16} /> รอแอดมินอนุมัติสิทธิ์
+              </>
+            )}
+          </Badge>
+        </div>
       </div>
 
       <div className="stats">
@@ -64,6 +92,32 @@ export default async function CompanionDashboard() {
             <h2>คำขอใหม่ที่รอผู้ช่วย ({openRequests.length})</h2>
             <Link className="text-link" href="/companion/requests">ดูคำขอทั้งหมด</Link>
           </div>
+
+          {!isApproved && (
+            <Card
+              style={{
+                background: "#fffbeb",
+                border: "1.5px solid #fde68a",
+                padding: "16px 20px",
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                borderRadius: 16,
+              }}
+            >
+              <Clock size={26} style={{ color: "#d97706", flexShrink: 0 }} />
+              <div>
+                <strong style={{ color: "#92400e", display: "block", fontSize: ".98rem" }}>
+                  บัญชีของคุณอยู่ระหว่างรอการอนุมัติสิทธิ์จากผู้ดูแลระบบ
+                </strong>
+                <span style={{ fontSize: ".88rem", color: "#b45309" }}>
+                  {data?.verificationStatus === "rejected"
+                    ? "เอกสารยืนยันตัวตนไม่ผ่านการอนุมัติ กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบแก้ไข"
+                    : "เมื่อผู้ดูแลระบบตรวจสอบเอกสารและอนุมัติสิทธิ์แล้ว คุณจะสามารถกดรับงานจากผู้ใช้บริการได้ทันทีครับ"}
+                </span>
+              </div>
+            </Card>
+          )}
 
           {openRequests.length === 0 ? (
             <Card className="form-card" style={{ textAlign: "center", padding: "35px" }}>
@@ -114,7 +168,7 @@ export default async function CompanionDashboard() {
                 </div>
 
                 <div className="form-actions" style={{ justifyContent: "flex-end" }}>
-                  <AcceptRequestButton requestId={req.id} />
+                  <AcceptRequestButton requestId={req.id} isApproved={isApproved} />
                 </div>
               </Card>
             ))

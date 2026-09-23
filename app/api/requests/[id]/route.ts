@@ -20,7 +20,11 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
 
-    const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role, verification_status")
+      .eq("id", user.id)
+      .maybeSingle();
     if (profileError || !profile || !["customer", "companion", "admin"].includes(profile.role)) {
       return NextResponse.json({ error: "ไม่พบสิทธิ์ผู้ใช้งาน" }, { status: 403 });
     }
@@ -28,6 +32,12 @@ export async function PATCH(
     if (action === "accept") {
       if (profile.role !== "companion") {
         return NextResponse.json({ error: "เฉพาะ Companion เท่านั้นที่รับงานได้" }, { status: 403 });
+      }
+      if (profile.verification_status !== "approved") {
+        return NextResponse.json(
+          { error: "คุณต้องได้รับการอนุมัติตัวตนจากผู้ดูแลระบบก่อน จึงจะสามารถรับงานได้" },
+          { status: 403 },
+        );
       }
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
         return NextResponse.json({ error: "รหัสคำขอไม่ถูกต้อง" }, { status: 400 });

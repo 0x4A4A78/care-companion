@@ -1,6 +1,6 @@
 "use client";
 
-import { BriefcaseBusiness, Car, Check, Languages, MapPin, Save, UserRound } from "lucide-react";
+import { BriefcaseBusiness, Car, Languages, MapPin, Save, UserRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -95,11 +95,6 @@ export function CompanionProfileEditor({ initialProfile }: { initialProfile: Com
           <label className="field"><span><Languages size={15} /> ภาษาที่สื่อสารได้</span><input required value={form.languages} onChange={(event) => setForm({ ...form, languages: event.target.value })} placeholder="ภาษาไทย, English" /></label>
           <label className="field"><span><Car size={15} /> การเดินทาง</span><input maxLength={300} value={form.transportation} onChange={(event) => setForm({ ...form, transportation: event.target.value })} placeholder="เช่น รถยนต์ส่วนตัว หรือรถสาธารณะ" /></label>
         </div>
-      </Card>
-
-      <Card className="form-card companion-availability-card">
-        <div><h2>สถานะพร้อมรับงาน</h2><p>{form.available ? "Customer สามารถค้นหาและส่งงานให้คุณได้" : "โปรไฟล์จะไม่แสดงในรายการผู้ช่วยที่พร้อมรับงาน"}</p></div>
-        <button type="button" className={`button ${form.available ? "button-primary" : "button-ghost"}`} aria-pressed={form.available} onClick={() => setForm({ ...form, available: !form.available })}>{form.available ? <><Check size={18} /> พร้อมรับงาน</> : "เปิดรับงาน"}</button>
       </Card>
 
       <div className="profile-save-actions"><button className="button button-primary button-large" type="submit" disabled={saving}><Save size={20} /> {saving ? "กำลังบันทึก..." : "บันทึกโปรไฟล์"}</button></div>

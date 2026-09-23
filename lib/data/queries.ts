@@ -326,11 +326,12 @@ export async function getCustomerRequestsWithReviews(customerId: string): Promis
 export async function getCompanionDashboardData(companionId: string) {
   try {
     const supabase = await createClient();
-    const [openRequests, myJobs, detailRes, reviewsRes] = await Promise.all([
+    const [openRequests, myJobs, detailRes, reviewsRes, profileRes] = await Promise.all([
       getOpenRequests(5),
       getCompanionRequests(companionId),
       supabase.from("companion_details").select("*").eq("profile_id", companionId).maybeSingle(),
       supabase.from("reviews").select("rating").eq("companion_id", companionId),
+      supabase.from("profiles").select("verification_status").eq("id", companionId).maybeSingle(),
     ]);
 
     const reviews = reviewsRes.data ?? [];
@@ -344,6 +345,7 @@ export async function getCompanionDashboardData(companionId: string) {
       detail: detailRes.data,
       reviewCount: reviews.length,
       averageRating: avgRating,
+      verificationStatus: (profileRes.data?.verification_status ?? "pending") as "pending" | "approved" | "rejected",
     };
   } catch {
     return {
@@ -352,6 +354,7 @@ export async function getCompanionDashboardData(companionId: string) {
       detail: null,
       reviewCount: 0,
       averageRating: null,
+      verificationStatus: "pending" as const,
     };
   }
 }

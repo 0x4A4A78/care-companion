@@ -114,7 +114,6 @@ export default async function CompanionDashboard() {
                 </div>
 
                 <div className="form-actions" style={{ justifyContent: "flex-end" }}>
-                  <Link className="button button-ghost" href={`/companion/jobs/${req.referenceNo}`}>ดูรายละเอียด</Link>
                   <AcceptRequestButton requestId={req.id} />
                 </div>
               </Card>
@@ -136,10 +135,7 @@ export default async function CompanionDashboard() {
               <p>
                 <MapPin size={17} style={{ display: "inline", verticalAlign: "middle" }} /> {nextJob.destination}
               </p>
-              <div className="form-actions">
-                <Link href={`/companion/jobs/${nextJob.referenceNo}`} className="button button-ghost">
-                  ดูรายละเอียดและแชต
-                </Link>
+              <div className="form-actions" style={{ justifyContent: "flex-end" }}>
                 <Link href={`/companion/jobs/${nextJob.referenceNo}`} className="button button-primary">
                   <Navigation size={18} /> เริ่มงาน / ติดตามงาน
                 </Link>

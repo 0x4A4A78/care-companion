@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "../supabase/server";
 import type { CompanionView, ServiceRequestView } from "./types";
+export type { CompanionView, ServiceRequestView };
 
 type ProfileRow = {
   id: string;
@@ -583,3 +584,227 @@ export async function getCustomerProfile(userId: string): Promise<CustomerProfil
     return null;
   }
 }
+
+export interface AdminUserItem {
+  id: string;
+  fullName: string;
+  role: string;
+  serviceArea: string;
+  verificationStatus: string;
+  isActive: boolean;
+  createdAt: string;
+  hourlyRate?: number;
+  experienceYears?: number;
+}
+
+export interface AdminVerificationItem {
+  id: string;
+  fullName: string;
+  serviceArea: string;
+  bio: string;
+  verificationStatus: string;
+  createdAt: string;
+  experienceYears: number;
+  skills: string[];
+  hourlyRate: number;
+  documents: {
+    id: string;
+    documentType: string;
+    status: string;
+    reviewNote: string | null;
+  }[];
+}
+
+export async function getAllUsersForAdmin(): Promise<AdminUserItem[]> {
+  try {
+    const supabase = await createClient();
+    const [{ data: profiles }, { data: details }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, role, service_area, verification_status, is_active, created_at")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("companion_details")
+        .select("profile_id, experience_years, hourly_rate"),
+    ]);
+
+    const detailMap = new Map((details ?? []).map((d) => [d.profile_id, d]));
+
+    return (profiles ?? []).map((p) => {
+      const d = detailMap.get(p.id);
+      return {
+        id: p.id,
+        fullName: p.full_name,
+        role: p.role,
+        serviceArea: p.service_area ?? "-",
+        verificationStatus: p.verification_status,
+        isActive: p.is_active ?? true,
+        createdAt: p.created_at,
+        hourlyRate: d ? Number(d.hourly_rate) : undefined,
+        experienceYears: d?.experience_years,
+      };
+    });
+  } catch (error) {
+    console.error("getAllUsersForAdmin error:", error);
+    return [];
+  }
+}
+
+export async function getVerificationCompanionsForAdmin(): Promise<AdminVerificationItem[]> {
+  try {
+    const supabase = await createClient();
+    const [{ data: profiles }, { data: details }, { data: docs }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, service_area, bio, verification_status, created_at")
+        .eq("role", "companion")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("companion_details")
+        .select("profile_id, experience_years, skills, hourly_rate"),
+      supabase
+        .from("verification_documents")
+        .select("id, companion_id, document_type, status, review_note"),
+    ]);
+
+    const detailMap = new Map((details ?? []).map((d) => [d.profile_id, d]));
+    const docMap = new Map<string, AdminVerificationItem["documents"]>();
+    (docs ?? []).forEach((doc) => {
+      const list = docMap.get(doc.companion_id) ?? [];
+      list.push({
+        id: doc.id,
+        documentType: doc.document_type,
+        status: doc.status,
+        reviewNote: doc.review_note,
+      });
+      docMap.set(doc.companion_id, list);
+    });
+
+    return (profiles ?? []).map((p) => {
+      const d = detailMap.get(p.id);
+      return {
+        id: p.id,
+        fullName: p.full_name,
+        serviceArea: p.service_area ?? "-",
+        bio: p.bio ?? "",
+        verificationStatus: p.verification_status,
+        createdAt: p.created_at,
+        experienceYears: d?.experience_years ?? 0,
+        skills: d?.skills ?? [],
+        hourlyRate: Number(d?.hourly_rate ?? 300),
+        documents: docMap.get(p.id) ?? [],
+      };
+    });
+  } catch (error) {
+    console.error("getVerificationCompanionsForAdmin error:", error);
+    return [];
+  }
+}
+
+export async function getAllRequestsForAdmin(): Promise<ServiceRequestView[]> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("service_requests")
+      .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, destination, support_needs, notes, status, created_at")
+      .order("created_at", { ascending: false });
+
+    const requests = ((data ?? []) as RequestRow[]).map(mapRequest);
+    const userIds = [...new Set([
+      ...requests.map((r) => r.customerId),
+      ...(requests.map((r) => r.companionId).filter(Boolean) as string[]),
+    ])];
+
+    if (userIds.length) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+      const nameMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
+      requests.forEach((r) => {
+        r.customerName = nameMap.get(r.customerId) ?? "ผู้ใช้บริการ";
+        if (r.companionId) r.companionName = nameMap.get(r.companionId);
+      });
+    }
+
+    return requests;
+  } catch (error) {
+    console.error("getAllRequestsForAdmin error:", error);
+    return [];
+  }
+}
+
+export interface AdminSettingsData {
+  tableCounts: {
+    profiles: number;
+    companions: number;
+    requests: number;
+    messages: number;
+    reviews: number;
+    documents: number;
+  };
+  envStatus: {
+    hasSupabaseUrl: boolean;
+    hasAnonKey: boolean;
+    hasServiceRoleKey: boolean;
+    nodeEnv: string;
+  };
+}
+
+export async function getAdminSettingsData(): Promise<AdminSettingsData> {
+  try {
+    const supabase = await createClient();
+    const [
+      { count: profilesCount },
+      { count: companionsCount },
+      { count: requestsCount },
+      { count: messagesCount },
+      { count: reviewsCount },
+      { count: documentsCount },
+    ] = await Promise.all([
+      supabase.from("profiles").select("*", { count: "exact", head: true }),
+      supabase.from("companion_details").select("*", { count: "exact", head: true }),
+      supabase.from("service_requests").select("*", { count: "exact", head: true }),
+      supabase.from("messages").select("*", { count: "exact", head: true }),
+      supabase.from("reviews").select("*", { count: "exact", head: true }),
+      supabase.from("verification_documents").select("*", { count: "exact", head: true }),
+    ]);
+
+    return {
+      tableCounts: {
+        profiles: profilesCount ?? 0,
+        companions: companionsCount ?? 0,
+        requests: requestsCount ?? 0,
+        messages: messagesCount ?? 0,
+        reviews: reviewsCount ?? 0,
+        documents: documentsCount ?? 0,
+      },
+      envStatus: {
+        hasSupabaseUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+        hasAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+        hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+        nodeEnv: process.env.NODE_ENV || "development",
+      },
+    };
+  } catch (error) {
+    console.error("getAdminSettingsData error:", error);
+    return {
+      tableCounts: {
+        profiles: 0,
+        companions: 0,
+        requests: 0,
+        messages: 0,
+        reviews: 0,
+        documents: 0,
+      },
+      envStatus: {
+        hasSupabaseUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+        hasAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+        hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+        nodeEnv: process.env.NODE_ENV || "development",
+      },
+    };
+  }
+}
+
+

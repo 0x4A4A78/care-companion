@@ -21,9 +21,9 @@ const nav = {
     ["/companion/jobs", "งานของฉัน", CalendarDays], ["/companion/profile", "โปรไฟล์", UserRound],
   ],
   admin: [
-    ["/admin", "ภาพรวม", Home], ["/admin", "ผู้ใช้งาน", UsersRound],
-    ["/admin", "ตรวจสอบตัวตน", ShieldCheck], ["/admin", "คำขอบริการ", ClipboardList],
-    ["/admin", "ตั้งค่า", Settings],
+    ["/admin", "ภาพรวม", Home], ["/admin/users", "ผู้ใช้งาน", UsersRound],
+    ["/admin/verifications", "ตรวจสอบตัวตน", ShieldCheck], ["/admin/requests", "คำขอบริการ", ClipboardList],
+    ["/admin/settings", "ตั้งค่า", Settings],
   ],
 } as const;
 

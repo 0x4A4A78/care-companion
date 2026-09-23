@@ -1,5 +1,4 @@
 import { ArrowRight, CalendarDays, MapPin, Search } from "lucide-react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Badge, Card } from "../../../../components/ui";
@@ -27,7 +26,7 @@ export default async function CompanionRequestsPage() {
             <div className="summary-row"><span><MapPin size={17} /> เส้นทาง</span><strong>{item.pickup} <ArrowRight size={14} className="inline-icon" /> {item.destination}</strong></div>
             <div className="summary-row"><span>ต้องการให้ช่วย</span><strong>{item.supportNeeds.length ? item.supportNeeds.join(", ") : "ช่วยเหลือทั่วไป"}</strong></div>
           </div>
-          <div className="form-actions companion-request-actions"><Link className="button button-ghost" href={`/companion/jobs/${item.referenceNo}`}>ดูรายละเอียด</Link><AcceptRequestButton requestId={item.id} /></div>
+          <div className="form-actions companion-request-actions" style={{ justifyContent: "flex-end" }}><AcceptRequestButton requestId={item.id} /></div>
         </Card>)}
     </div>
   </div>;

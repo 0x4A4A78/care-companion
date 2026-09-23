@@ -152,3 +152,27 @@
 .star-rating-label{font-weight:800;font-size:.98rem;color:#b45309;display:block;min-height:24px}
 .review-dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
 
+/* ─── Admin Portal UI Components ─── */
+.admin-filter-bar{display:flex;align-items:center;gap:8px;overflow-x:auto;padding-bottom:4px}
+.admin-filter-tab{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:6px 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--muted);font-weight:650;font-size:.88rem;cursor:pointer;white-space:nowrap;transition:var(--transition)}
+.admin-filter-tab:hover{border-color:#cbd5e1;color:var(--navy);background:#f8fafc}
+.admin-filter-tab.active{border-color:var(--blue);background:var(--sky);color:var(--blue-dark)}
+.tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:rgba(0,0,0,.06);font-size:.75rem;font-weight:700}
+.admin-filter-tab.active .tab-count{background:var(--blue);color:#fff}
+.admin-role-select{min-height:36px;padding:4px 10px;border:1.5px solid var(--line);border-radius:8px;background:#fff;font-size:.84rem;color:var(--navy);font-weight:600;outline:none;cursor:pointer;transition:var(--transition)}
+.admin-role-select:focus{border-color:var(--blue)}
+.admin-verification-card{padding:20px;display:flex;flex-direction:column;gap:16px;transition:var(--transition)}
+.admin-verification-card:hover{border-color:#b8c8db}
+.admin-verification-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}
+.admin-verification-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.admin-status-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line)}
+.admin-status-row:last-child{border-bottom:none}
+.admin-status-label{display:inline-flex;align-items:center;gap:8px;font-size:.9rem;color:var(--muted);font-weight:600}
+.admin-metric-box{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.metric-title{font-size:.82rem;color:var(--muted);font-weight:600}
+.metric-val{font-size:1.45rem;color:var(--navy);font-weight:800}
+.admin-config-card{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:16px}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+

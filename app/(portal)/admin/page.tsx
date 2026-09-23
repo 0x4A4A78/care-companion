@@ -2,7 +2,6 @@ import {
   AlertTriangle,
   ArrowUpRight,
   BadgeCheck,
-  Search,
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
@@ -56,10 +55,13 @@ export default async function AdminDashboard() {
                 <h2>จัดการผู้ใช้งานจริง ({stats.totalUsers})</h2>
                 <small>บัญชี Customer, Companion และ Admin ในระบบ</small>
               </div>
-              <label className="top-search">
-                <Search size={18} />
-                <input placeholder="ค้นหาชื่อในระบบ..." />
-              </label>
+              <Link
+                href="/admin/users"
+                className="button button-ghost"
+                style={{ minHeight: 36, padding: "4px 12px", fontSize: ".84rem" }}
+              >
+                จัดการผู้ใช้ทั้งหมด <ArrowUpRight size={15} />
+              </Link>
             </div>
             <div className="table-wrap">
               <table>
@@ -106,9 +108,13 @@ export default async function AdminDashboard() {
           <Card className="data-card">
             <div className="data-card-header">
               <h2>คำขอบริการล่าสุด ({recentRequests.length})</h2>
-              <span className="text-link" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Link
+                href="/admin/requests"
+                className="text-link"
+                style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+              >
                 รายการทั้งหมด <ArrowUpRight size={16} />
-              </span>
+              </Link>
             </div>
             <div className="table-wrap">
               <table>
@@ -177,6 +183,13 @@ export default async function AdminDashboard() {
                 ไม่มี Companion ที่รอการตรวจสอบตัวตนในขณะนี้
               </p>
             )}
+            <Link
+              href="/admin/verifications"
+              className="button button-ghost"
+              style={{ marginTop: 10, width: "100%", justifyContent: "center", minHeight: 38, fontSize: ".88rem" }}
+            >
+              ไปที่หน้าตรวจสอบตัวตน <ArrowUpRight size={15} />
+            </Link>
           </Card>
 
           <Card className="side-card">

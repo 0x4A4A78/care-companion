@@ -564,34 +564,36 @@ function RequestConversation() {
       <div className="line-request-shell">
         {/* LINE Chat Header */}
         <div className="line-request-header">
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
             <div className="line-bot-avatar">
-              <Bot size={26} />
+              <Bot size={22} />
             </div>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800, color: "var(--navy)" }}>
-                  น้องแคร์ (Care Bot)
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 800, color: "var(--navy)", whiteSpace: "nowrap" }}>
+                  น้องแคร์
                 </h3>
                 <span className="line-chat-status-pill">
                   <span className="online-dot" /> ออนไลน์
                 </span>
               </div>
-              <span className="line-chat-partner" style={{ fontSize: ".82rem", color: "var(--muted)" }}>
+              <span className="line-header-subtitle" style={{ fontSize: ".78rem", color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>
                 ผู้ช่วย AI จัดการคำขอเดินทางทีละขั้นตอน
               </span>
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
             <span
+              className="line-step-badge"
               style={{
-                fontSize: ".82rem",
+                fontSize: ".78rem",
                 fontWeight: 700,
                 color: "var(--blue-dark)",
                 background: "var(--sky)",
-                padding: "4px 10px",
+                padding: "3px 8px",
                 borderRadius: 999,
+                whiteSpace: "nowrap",
               }}
             >
               ข้อ {stepIndex + 1}/{steps.length}
@@ -600,11 +602,12 @@ function RequestConversation() {
               type="button"
               className={`voice-mode-toggle ${voiceMode ? "active" : ""}`}
               onClick={() => setVoiceMode((v) => !v)}
-              style={{ minHeight: 38, padding: "6px 12px", fontSize: ".82rem" }}
+              style={{ minHeight: 34, padding: "5px 9px", fontSize: ".78rem" }}
               title={voiceMode ? "ปิดเสียงอ่าน" : "เปิดเสียงอ่านอัตโนมัติ"}
+              aria-label={voiceMode ? "ปิดเสียงอ่าน" : "เปิดเสียงอ่านอัตโนมัติ"}
             >
-              {voiceMode ? <Volume2 size={16} /> : <VolumeX size={16} />}
-              {voiceMode ? "เสียงเปิด" : "เสียงปิด"}
+              {voiceMode ? <Volume2 size={15} /> : <VolumeX size={15} />}
+              <span className="voice-toggle-text">{voiceMode ? "เสียงเปิด" : "เสียงปิด"}</span>
             </button>
           </div>
         </div>
@@ -616,15 +619,15 @@ function RequestConversation() {
             <div className="line-turn" key={step.id}>
               {/* Bot Question (Left) */}
               <div className="line-msg-row peer">
-                <div className="line-bot-avatar" style={{ width: 36, height: 36 }}>
-                  <Bot size={20} />
+                <div className="line-bot-avatar" style={{ width: 34, height: 34 }}>
+                  <Bot size={18} />
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", maxWidth: "80%" }}>
-                  <span style={{ fontSize: ".76rem", color: "rgba(255,255,255,.9)", marginBottom: 2 }}>
+                <div style={{ display: "flex", flexDirection: "column", minWidth: 0, maxWidth: "calc(100% - 44px)" }}>
+                  <span style={{ fontSize: ".74rem", color: "rgba(255,255,255,.9)", marginBottom: 2 }}>
                     น้องแคร์
                   </span>
                   <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
-                    <div className="line-msg-bubble peer" style={{ padding: "11px 15px", fontSize: ".98rem" }}>
+                    <div className="line-msg-bubble peer" style={{ padding: "10px 14px", fontSize: ".95rem" }}>
                       <strong>{step.question}</strong>
                     </div>
                   </div>
@@ -633,8 +636,8 @@ function RequestConversation() {
 
               {/* User Answer (Right) */}
               <div className="line-msg-row me">
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
-                  <div className="line-msg-bubble me" style={{ padding: "11px 16px", fontSize: ".98rem" }}>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 6, maxWidth: "85%", marginLeft: "auto" }}>
+                  <div className="line-msg-bubble me" style={{ padding: "10px 14px", fontSize: ".95rem" }}>
                     {answerFor(idx)}
                   </div>
                 </div>
@@ -644,18 +647,18 @@ function RequestConversation() {
 
           {/* Current Active Step (Left) */}
           <div className="line-msg-row peer">
-            <div className="line-bot-avatar" style={{ width: 40, height: 40 }}>
-              <Bot size={22} />
+            <div className="line-bot-avatar" style={{ width: 38, height: 38 }}>
+              <Bot size={20} />
             </div>
-            <div style={{ display: "flex", flexDirection: "column", maxWidth: "90%" }}>
-              <span style={{ fontSize: ".78rem", color: "rgba(255,255,255,.9)", marginBottom: 2 }}>
+            <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: "1 1 auto", maxWidth: "calc(100% - 46px)" }}>
+              <span style={{ fontSize: ".76rem", color: "rgba(255,255,255,.9)", marginBottom: 2 }}>
                 น้องแคร์
               </span>
               <div className="line-msg-bubble peer">
-                <strong style={{ fontSize: "1.1rem", display: "block", color: "var(--navy)" }}>
+                <strong style={{ fontSize: "1.05rem", display: "block", color: "var(--navy)" }}>
                   {currentStep.question}
                 </strong>
-                <small style={{ display: "block", color: "var(--muted)", marginTop: 6, fontSize: ".88rem" }}>
+                <small style={{ display: "block", color: "var(--muted)", marginTop: 4, fontSize: ".84rem" }}>
                   💡 {currentStep.hint}
                 </small>
 
@@ -683,12 +686,12 @@ function RequestConversation() {
 
                   {/* Datetime choices */}
                   {currentStep.id === "datetime" && (
-                    <div style={{ display: "grid", gap: 12 }}>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    <div style={{ display: "grid", gap: 10, width: "100%", minWidth: 0 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6 }}>
                         <button
                           type="button"
                           className={`line-quick-btn ${data.serviceDate === todayStr ? "selected" : ""}`}
-                          style={{ flex: 1, minWidth: 100, justifyContent: "center" }}
+                          style={{ minHeight: 40, padding: "8px 2px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
                           onClick={() => setData({ ...data, serviceDate: todayStr })}
                         >
                           วันนี้
@@ -696,7 +699,7 @@ function RequestConversation() {
                         <button
                           type="button"
                           className={`line-quick-btn ${data.serviceDate === tomorrowStr ? "selected" : ""}`}
-                          style={{ flex: 1, minWidth: 100, justifyContent: "center" }}
+                          style={{ minHeight: 40, padding: "8px 2px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
                           onClick={() => setData({ ...data, serviceDate: tomorrowStr })}
                         >
                           พรุ่งนี้
@@ -704,16 +707,16 @@ function RequestConversation() {
                         <button
                           type="button"
                           className={`line-quick-btn ${data.serviceDate === dayAfterStr ? "selected" : ""}`}
-                          style={{ flex: 1, minWidth: 100, justifyContent: "center" }}
+                          style={{ minHeight: 40, padding: "8px 2px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
                           onClick={() => setData({ ...data, serviceDate: dayAfterStr })}
                         >
                           มะรืนนี้
                         </button>
                       </div>
 
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                        <label style={{ display: "grid", gap: 4 }}>
-                          <span style={{ fontSize: ".85rem", fontWeight: 700, color: "var(--muted)" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                        <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
+                          <span style={{ fontSize: ".82rem", fontWeight: 700, color: "var(--muted)", whiteSpace: "nowrap" }}>
                             <CalendarDays size={14} style={{ display: "inline", verticalAlign: "middle" }} /> วันที่
                           </span>
                           <input
@@ -721,48 +724,63 @@ function RequestConversation() {
                             value={data.serviceDate}
                             onChange={(e) => setData({ ...data, serviceDate: e.target.value })}
                             style={{
-                              padding: "8px 12px",
+                              width: "100%",
+                              minWidth: 0,
+                              boxSizing: "border-box",
+                              padding: "8px 10px",
                               borderRadius: 10,
                               border: "1.5px solid #cbd5e1",
-                              fontSize: ".95rem",
+                              fontSize: "16px",
                             }}
                           />
                         </label>
-                        <label style={{ display: "grid", gap: 4 }}>
-                          <span style={{ fontSize: ".85rem", fontWeight: 700, color: "var(--muted)" }}>
+                        <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
+                          <span style={{ fontSize: ".82rem", fontWeight: 700, color: "var(--muted)", whiteSpace: "nowrap" }}>
                             <Clock size={14} style={{ display: "inline", verticalAlign: "middle" }} /> เวลา (24 ชม.)
                           </span>
                           <input
                             type="text"
-                            placeholder="เช่น 09:00"
+                            placeholder="09:00"
                             value={data.startTime}
                             maxLength={5}
                             onChange={(e) =>
                               setData({ ...data, startTime: formatTime24HourInput(e.target.value) })
                             }
                             style={{
-                              padding: "8px 12px",
+                              width: "100%",
+                              minWidth: 0,
+                              boxSizing: "border-box",
+                              padding: "8px 10px",
                               borderRadius: 10,
                               border: "1.5px solid #cbd5e1",
-                              fontSize: ".95rem",
+                              fontSize: "16px",
                             }}
                           />
                         </label>
                       </div>
 
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                        <span style={{ fontSize: ".8rem", color: "var(--muted)" }}>เวลาแนะนำ:</span>
-                        {["09:00", "10:30", "13:00", "14:30"].map((t) => (
-                          <button
-                            key={t}
-                            type="button"
-                            className={`line-quick-btn ${data.startTime === t ? "selected" : ""}`}
-                            style={{ minHeight: 34, padding: "4px 10px", fontSize: ".84rem" }}
-                            onClick={() => setData({ ...data, startTime: t })}
-                          >
-                            {t} น.
-                          </button>
-                        ))}
+                      <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+                        <span style={{ fontSize: ".8rem", color: "var(--muted)", fontWeight: 600 }}>เวลาแนะนำ:</span>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 }}>
+                          {["09:00", "10:30", "13:00", "14:30"].map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              className={`line-quick-btn ${data.startTime === t ? "selected" : ""}`}
+                              style={{
+                                minHeight: 36,
+                                padding: "4px 2px",
+                                fontSize: ".82rem",
+                                justifyContent: "center",
+                                textAlign: "center",
+                                whiteSpace: "nowrap",
+                              }}
+                              onClick={() => setData({ ...data, startTime: t })}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       <button
@@ -834,19 +852,25 @@ function RequestConversation() {
 
                   {/* Duration chips */}
                   {currentStep.id === "duration" && (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6 }}>
                       {[1, 2, 3, 4, 5, 6].map((hours) => (
                         <button
                           key={hours}
                           type="button"
                           className={`line-quick-btn ${data.durationHours === hours ? "selected" : ""}`}
-                          style={{ justifyContent: "center", fontSize: "1rem" }}
+                          style={{
+                            justifyContent: "center",
+                            fontSize: ".92rem",
+                            padding: "8px 4px",
+                            minHeight: 42,
+                            whiteSpace: "nowrap",
+                          }}
                           onClick={() => {
                             setData({ ...data, durationHours: hours });
                             setTimeout(advance, 150);
                           }}
                         >
-                          <Clock size={16} style={{ color: "#06c755" }} /> {hours} ชั่วโมง
+                          <Clock size={15} style={{ color: "#06c755", flexShrink: 0 }} /> {hours} ชม.
                         </button>
                       ))}
                     </div>

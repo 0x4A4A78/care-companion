@@ -180,21 +180,21 @@
 .line-request-shell{background:#fff;border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 12px 36px rgba(18,48,90,.12);display:flex;flex-direction:column}
 .line-request-header{padding:14px 18px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:10}
 .line-bot-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#06c755,#00b900);color:#fff;display:grid;place-items:center;box-shadow:0 3px 10px rgba(6,199,85,.3);flex-shrink:0}
-.line-request-messages{min-height:480px;max-height:calc(100dvh - 280px);overflow-y:auto;padding:20px 16px;background:linear-gradient(180deg,#7a93ac 0%,#6f879e 100%);display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth}
-.line-turn{display:flex;flex-direction:column;gap:12px}
-.line-msg-row{display:flex;width:100%}
+.line-request-messages{min-height:480px;max-height:calc(100dvh - 280px);overflow-y:auto;overflow-x:hidden!important;padding:20px 16px;background:linear-gradient(180deg,#7a93ac 0%,#6f879e 100%);display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth;box-sizing:border-box}
+.line-turn{display:flex;flex-direction:column;gap:12px;width:100%;max-width:100%;box-sizing:border-box}
+.line-msg-row{display:flex;width:100%;max-width:100%;box-sizing:border-box}
 .line-msg-row.peer{justify-content:flex-start;align-items:flex-start;gap:10px}
 .line-msg-row.me{justify-content:flex-end;align-items:flex-end;gap:8px}
-.line-msg-bubble{padding:14px 18px;font-size:1.05rem;line-height:1.55;word-break:break-word}
-.line-msg-bubble.peer{background:#fff;color:#1e293b;border-radius:4px 20px 20px 20px;box-shadow:0 3px 12px rgba(0,0,0,.1);max-width:min(88%,560px)}
-.line-msg-bubble.me{background:linear-gradient(135deg,#06c755,#00b900);color:#fff;border-radius:20px 4px 20px 20px;box-shadow:0 4px 14px rgba(6,199,85,.3);max-width:min(85%,520px);font-weight:600}
+.line-msg-bubble{padding:14px 18px;font-size:1.05rem;line-height:1.55;word-break:break-word;box-sizing:border-box}
+.line-msg-bubble.peer{background:#fff;color:#1e293b;border-radius:4px 20px 20px 20px;box-shadow:0 3px 12px rgba(0,0,0,.1);width:100%;box-sizing:border-box}
+.line-msg-bubble.me{background:linear-gradient(135deg,#06c755,#00b900);color:#fff;border-radius:20px 4px 20px 20px;box-shadow:0 4px 14px rgba(6,199,85,.3);font-weight:600;box-sizing:border-box}
 .line-msg-time{font-size:.75rem;color:rgba(255,255,255,.8);white-space:nowrap;margin-bottom:3px}
-.line-action-box{margin-top:12px;display:flex;flex-direction:column;gap:10px}
-.line-quick-btn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
-.line-quick-btn{min-height:48px;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:14px;background:#f8fafc;color:#1e293b;font-size:.95rem;font-weight:700;display:flex;align-items:center;gap:8px;cursor:pointer;transition:var(--transition);text-align:left}
+.line-action-box{margin-top:12px;display:flex;flex-direction:column;gap:10px;width:100%;box-sizing:border-box}
+.line-quick-btn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;width:100%;box-sizing:border-box}
+.line-quick-btn{min-height:48px;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:14px;background:#f8fafc;color:#1e293b;font-size:.95rem;font-weight:700;display:flex;align-items:center;gap:8px;cursor:pointer;transition:var(--transition);text-align:left;max-width:100%;box-sizing:border-box}
 .line-quick-btn:hover{background:#ecfdf5;border-color:#06c755;color:#047857;transform:translateY(-1px)}
 .line-quick-btn.selected{background:#ecfdf5;border-color:#06c755;color:#047857;box-shadow:0 0 0 2px rgba(6,199,85,.2)}
-.line-receipt-card{background:#fff;border:1.5px solid #cbd5e1;border-radius:16px;padding:16px;margin-top:10px;box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.line-receipt-card{background:#fff;border:1.5px solid #cbd5e1;border-radius:16px;padding:16px;margin-top:10px;box-shadow:0 4px 16px rgba(0,0,0,.06);width:100%;box-sizing:border-box}
 .line-receipt-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #e2e8f0;font-size:.95rem}
 .line-receipt-row:last-child{border-bottom:none}
 .line-receipt-label{color:var(--muted);font-weight:600}
@@ -212,9 +212,10 @@
 @media(max-width:720px){
   /* LINE Customer Request Chat on Mobile */
   .line-request-page{
-    margin:-10px -14px -24px;
+    margin:-16px -14px -24px;
     padding-bottom:0;
     height:calc(100dvh - 68px - 68px - env(safe-area-inset-bottom,0px));
+    max-height:calc(100dvh - 68px - 68px - env(safe-area-inset-bottom,0px));
     display:flex;
     flex-direction:column;
     overflow:hidden;
@@ -230,14 +231,21 @@
     box-shadow:none;
     display:flex;
     flex-direction:column;
+    overflow:hidden;
   }
   .line-request-header{
-    padding:10px 14px;
+    padding:8px 12px;
     flex-shrink:0;
   }
+  .line-header-subtitle{
+    display:none!important;
+  }
+  .voice-toggle-text{
+    display:none;
+  }
   .line-bot-avatar{
-    width:38px;
-    height:38px;
+    width:36px;
+    height:36px;
   }
   .line-request-messages{
     flex:1;
@@ -247,33 +255,52 @@
     padding:12px 10px;
     -webkit-overflow-scrolling:touch;
     overscroll-behavior:contain;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    width:100%!important;
+    box-sizing:border-box!important;
+  }
+  .line-turn{
+    width:100%!important;
+    max-width:100%!important;
+    box-sizing:border-box!important;
+  }
+  .line-msg-row{
+    width:100%!important;
+    max-width:100%!important;
+    box-sizing:border-box!important;
   }
   .line-msg-bubble.peer{
-    max-width:90%;
-    padding:12px 14px;
-    font-size:.98rem;
+    width:100%;
+    padding:10px 12px;
+    font-size:.95rem;
   }
   .line-msg-bubble.me{
     max-width:88%;
-    padding:11px 14px;
-    font-size:.98rem;
+    padding:10px 14px;
+    font-size:.95rem;
+  }
+  .line-action-box{
+    width:100%!important;
+    box-sizing:border-box!important;
   }
   .line-quick-btn-grid{
     grid-template-columns:repeat(2,minmax(0,1fr));
     gap:6px;
+    width:100%;
   }
   .line-quick-btn{
-    min-height:46px;
-    padding:8px 10px;
-    font-size:.88rem;
-    line-height:1.3;
+    min-height:42px;
+    padding:6px 8px;
+    font-size:.84rem;
+    line-height:1.25;
   }
   .line-receipt-card{
-    padding:12px;
+    padding:10px;
     border-radius:14px;
   }
   .line-receipt-row{
-    font-size:.88rem;
+    font-size:.84rem;
   }
   .line-composer-bar{
     flex-shrink:0;
@@ -289,8 +316,9 @@
     border-radius:22px;
   }
   .line-mic-btn,.line-send-btn{
-    width:44px;
-    height:44px;
+    width:42px;
+    height:42px;
+    min-width:42px;
   }
 
   /* Real-Time Job Chat on Mobile */

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge, Card } from "../../../../components/ui";
 import type { CompanionProfileOwnerView } from "../../../../lib/data/queries";
+import { VerificationUploader } from "./verification-uploader";
 
 const suggestedSkills = [
   "พาไปโรงพยาบาล",
@@ -96,6 +97,8 @@ export function CompanionProfileEditor({ initialProfile }: { initialProfile: Com
           <label className="field"><span><Car size={15} /> การเดินทาง</span><input maxLength={300} value={form.transportation} onChange={(event) => setForm({ ...form, transportation: event.target.value })} placeholder="เช่น รถยนต์ส่วนตัว หรือรถสาธารณะ" /></label>
         </div>
       </Card>
+
+      <VerificationUploader />
 
       <div className="profile-save-actions"><button className="button button-primary button-large" type="submit" disabled={saving}><Save size={20} /> {saving ? "กำลังบันทึก..." : "บันทึกโปรไฟล์"}</button></div>
     </form>

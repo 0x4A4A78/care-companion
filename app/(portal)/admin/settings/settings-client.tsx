@@ -8,7 +8,6 @@ import {
   Layers,
   Play,
   RefreshCw,
-  Server,
   Settings,
   Shield,
   Volume2,
@@ -156,18 +155,10 @@ export function SettingsClient({ initialData }: { initialData: AdminSettingsData
             </div>
             <div className="admin-status-row">
               <span className="admin-status-label">
-                <Shield size={16} /> Anon Public Key
+                <Shield size={16} /> Supabase Publishable Key
               </span>
-              <Badge tone={data.envStatus.hasAnonKey ? "green" : "red"}>
-                {data.envStatus.hasAnonKey ? "พร้อมใช้งาน" : "ขาด Key"}
-              </Badge>
-            </div>
-            <div className="admin-status-row">
-              <span className="admin-status-label">
-                <Server size={16} /> Service Role Key
-              </span>
-              <Badge tone={data.envStatus.hasServiceRoleKey ? "green" : "amber"}>
-                {data.envStatus.hasServiceRoleKey ? "เปิดใช้งาน" : "จำกัดสิทธิ์"}
+              <Badge tone={data.envStatus.hasPublishableKey ? "green" : "red"}>
+                {data.envStatus.hasPublishableKey ? "พร้อมใช้งาน" : "ขาด Key"}
               </Badge>
             </div>
             <div className="admin-status-row">
@@ -292,19 +283,13 @@ export function SettingsClient({ initialData }: { initialData: AdminSettingsData
           <div className="admin-config-card">
             <strong>ระยะเวลาบริการขั้นต่ำ</strong>
             <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: ".9rem" }}>
-              2 ชั่วโมงต่อหนึ่งคำขอ เพื่อความคุ้มค่าในการเดินทาง
+              30 นาทีต่อหนึ่งคำขอ และไม่เกิน 12 ชั่วโมง
             </p>
           </div>
           <div className="admin-config-card">
             <strong>การตรวจสอบตัวตน (KYC)</strong>
             <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: ".9rem" }}>
               ต้องผ่านการอนุมัติเอกสารจากแอดมินก่อนจึงจะเริ่มรับงานได้
-            </p>
-          </div>
-          <div className="admin-config-card">
-            <strong>ความคุ้มครองและประกันภัย</strong>
-            <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: ".9rem" }}>
-              คุ้มครองอุบัติเหตุระหว่างการเดินทางสูงสุด 50,000 บาท
             </p>
           </div>
         </div>

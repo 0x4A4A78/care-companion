@@ -20,7 +20,7 @@ export async function PUT(request: Request) {
 
   const { data: profile, error: roleError } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, is_active")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -31,7 +31,7 @@ export async function PUT(request: Request) {
     });
     return NextResponse.json({ error: "ไม่สามารถตรวจสอบบัญชีได้" }, { status: 500 });
   }
-  if (!profile || profile.role !== "companion") {
+  if (!profile || profile.role !== "companion" || profile.is_active === false) {
     return NextResponse.json({ error: "บัญชีนี้ไม่มีสิทธิ์แก้ไขโปรไฟล์ผู้ช่วย" }, { status: 403 });
   }
 

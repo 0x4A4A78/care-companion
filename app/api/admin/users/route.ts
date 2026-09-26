@@ -26,6 +26,21 @@ export async function PATCH(request: Request) {
     }
 
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
+
+    const { data: actor, error: actorError } = await supabase
+      .from("profiles")
+      .select("role, is_active")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (actorError || !actor || actor.role !== "admin" || actor.is_active === false) {
+      return NextResponse.json({ error: "เฉพาะผู้ดูแลระบบเท่านั้น" }, { status: 403 });
+    }
+    if (userId === user.id && ((updates.role && updates.role !== "admin") || updates.is_active === false)) {
+      return NextResponse.json({ error: "ผู้ดูแลระบบไม่สามารถลดสิทธิ์หรือระงับบัญชีตนเองได้" }, { status: 400 });
+    }
+
     const { data, error } = await supabase
       .from("profiles")
       .update(updates)

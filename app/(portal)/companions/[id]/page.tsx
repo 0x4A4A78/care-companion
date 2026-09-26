@@ -11,6 +11,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Avatar, Badge, Card } from "../../../../components/ui";
 import { formatMoney } from "../../../../lib/data/presentation";
+import { formatThaiDate } from "../../../../lib/data/presentation";
 import { getCompanion } from "../../../../lib/data/queries";
 
 export default async function CompanionProfile({
@@ -85,12 +86,14 @@ export default async function CompanionProfile({
           <Card className="form-card">
             <h2>ความคิดเห็นจากผู้ใช้บริการ ({person.reviewCount})</h2>
             {person.reviewCount > 0 ? (
-              <div>
-                <p style={{ fontStyle: "italic", color: "#334155", margin: "12px 0" }}>
-                  <Star size={18} fill="#f3a712" color="#f3a712" style={{ verticalAlign: "middle", display: "inline" }} />{" "}
-                  &ldquo;ตรงเวลา สุภาพ และอธิบายขั้นตอนได้เข้าใจง่าย ช่วยพาไปตรวจตามจุดต่าง ๆ ได้อย่างราบรื่น&rdquo;
-                </p>
-                <small style={{ color: "var(--muted)" }}>— ครอบครัวผู้รับบริการจริงในระบบ</small>
+              <div className="stack" style={{ gap: 10 }}>
+                {person.reviews.map((review) => (
+                  <div key={review.id} style={{ padding: 14, border: "1px solid var(--line)", borderRadius: 12 }}>
+                    <strong style={{ color: "var(--amber)" }}>{"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}</strong>
+                    <p style={{ color: "#334155", margin: "6px 0" }}>{review.comment || "ผู้ใช้ให้คะแนนโดยไม่ได้เขียนความคิดเห็น"}</p>
+                    <small style={{ color: "var(--muted)" }}>รีวิวเมื่อ {formatThaiDate(review.createdAt.slice(0, 10))}</small>
+                  </div>
+                ))}
               </div>
             ) : (
               <p style={{ color: "var(--muted)", margin: "10px 0" }}>ยังไม่มีรีวิวสำหรับผู้ช่วยท่านนี้</p>

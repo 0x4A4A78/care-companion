@@ -5,8 +5,8 @@
 ## ฟีเจอร์ที่มีในโครงงาน
 
 - Landing page และ Google Sign-in ผ่าน Supabase Auth
-- Customer dashboard, ค้นหา Companion, โปรไฟล์, request wizard 5 ขั้นตอน และติดตามสถานะงาน
-- Companion dashboard, คำขอใหม่, สถานะความพร้อม ตารางงาน ครับแนน และรายได้
+- Customer dashboard, ค้นหา Companion, โปรไฟล์, สร้างคำขอแบบสนทนา และติดตามสถานะงาน
+- Companion dashboard, คำขอใหม่, สถานะความพร้อม ตารางงาน คะแนน และแก้ไขโปรไฟล์
 - Admin dashboard, สถิติ, จัดการผู้ใช้, ตรวจสอบตัวตน และรายการคำขอบริการ
 - Responsive UI สำหรับ desktop/mobile เน้นตัวอักษรและปุ่มขนาดใหญ่
 - PostgreSQL schema, indexes, Storage bucket และ Row Level Security
@@ -41,7 +41,11 @@ npm run dev -- -p 3001
 7. คัดลอก `.env.example` เป็น `.env.local` แล้วใส่ Project URL และ Publishable key จาก Supabase
 8. รีสตาร์ต dev server หลังแก้ environment variables
 9. กำหนด Admin จาก SQL Editor หรือ secure server process เท่านั้น ห้ามเปิดให้เลือก Admin จากหน้าสมัคร
-10. หากเป็นฐานข้อมูลเดิม ให้รัน `supabase/migration_open_request_feed.sql` เพื่อให้ Companion เห็นคำขอใหม่ และรัน `supabase/migration_companion_workflow_security.sql` เพื่อเปิดกฎความปลอดภัยของขั้นตอนงาน
+10. หากเป็นฐานข้อมูลเดิม ให้รันไฟล์ migration ต่อไปนี้ใน Supabase SQL Editor ตามลำดับ:
+    - `supabase/migration_open_request_feed.sql`
+    - `supabase/migration_companion_workflow_security.sql`
+    - `supabase/migration_profile_privacy_and_permissions.sql`
+    - `supabase/migration_verification_storage.sql`
 
 ## ตรวจคุณภาพ
 
@@ -58,8 +62,7 @@ npm run build
 
 เชื่อม repository กับ Vercel แล้วตั้งค่า Environment Variables:
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
 อย่าลืมเพิ่ม `https://care-companion-xi.vercel.app/**` ลงใน Redirect URLs ของ Supabase ก่อนเริ่มใช้งานจริง
 

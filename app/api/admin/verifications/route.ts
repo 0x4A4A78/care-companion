@@ -14,6 +14,25 @@ export async function PATCH(request: Request) {
     }
 
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
+
+    const { data: actor, error: actorError } = await supabase
+      .from("profiles")
+      .select("role, is_active")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (actorError || !actor || actor.role !== "admin" || actor.is_active === false) {
+      return NextResponse.json({ error: "เฉพาะผู้ดูแลระบบเท่านั้น" }, { status: 403 });
+    }
+    if (status === "approved") {
+      const { count, error: documentError } = await supabase
+        .from("verification_documents")
+        .select("id", { count: "exact", head: true })
+        .eq("companion_id", companionId);
+      if (documentError) return NextResponse.json({ error: "ไม่สามารถตรวจสอบรายการเอกสารได้" }, { status: 500 });
+      if (!count) return NextResponse.json({ error: "Companion ต้องส่งเอกสารก่อนอนุมัติ" }, { status: 400 });
+    }
 
     // 1. Update profiles table
     const { data: profile, error: profileError } = await supabase
@@ -33,6 +52,7 @@ export async function PATCH(request: Request) {
       .from("verification_documents")
       .update({
         status,
+        reviewed_by: user.id,
         review_note: note || (status === "approved" ? "อนุมัติโดยผู้ดูแลระบบ" : "ปฏิเสธโดยผู้ดูแลระบบ"),
       })
       .eq("companion_id", companionId);

@@ -14,6 +14,12 @@ export type CompanionView = {
   available: boolean;
   rating: number | null;
   reviewCount: number;
+  reviews: Array<{
+    id: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
+  }>;
 };
 
 export type ServiceRequestView = {

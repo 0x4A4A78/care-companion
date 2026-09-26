@@ -106,6 +106,7 @@ export async function getCompanions(options: { limit?: number; availableOnly?: b
         available: detail.available,
         rating: ratings.length ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null,
         reviewCount: ratings.length,
+        reviews: [],
       }];
     });
   } catch {
@@ -118,15 +119,15 @@ export async function getCompanion(id: string): Promise<CompanionView | null> {
     const supabase = await createClient();
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, full_name, service_area, bio, verification_status")
+      .select("id, full_name, role, service_area, bio, verification_status, is_active")
       .eq("id", id)
       .maybeSingle();
 
-    if (!profile) return null;
+    if (!profile || profile.role !== "companion" || profile.verification_status !== "approved" || !profile.is_active) return null;
 
     const [{ data: detail }, { data: reviews }] = await Promise.all([
       supabase.from("companion_details").select("*").eq("profile_id", id).maybeSingle(),
-      supabase.from("reviews").select("rating").eq("companion_id", id),
+      supabase.from("reviews").select("id, rating, comment, created_at").eq("companion_id", id).order("created_at", { ascending: false }).limit(10),
     ]);
 
     if (!detail) return null;
@@ -145,6 +146,12 @@ export async function getCompanion(id: string): Promise<CompanionView | null> {
       available: detail.available,
       rating: ratings.length ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length : null,
       reviewCount: ratings.length,
+      reviews: (reviews ?? []).map((review) => ({
+        id: review.id,
+        rating: Number(review.rating),
+        comment: review.comment ?? "",
+        createdAt: review.created_at,
+      })),
     };
   } catch {
     return null;
@@ -418,10 +425,12 @@ export async function getRequestByReference(refOrId: string): Promise<ServiceReq
       .from("service_requests")
       .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, destination, support_needs, notes, status, created_at");
 
-    if (refOrId.startsWith("CC-")) {
+    if (/^CC-[A-Z0-9]{8}$/i.test(refOrId)) {
       query = query.eq("reference_no", refOrId);
+    } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(refOrId)) {
+      query = query.eq("id", refOrId);
     } else {
-      query = query.or(`id.eq.${refOrId},reference_no.eq.${refOrId}`);
+      return null;
     }
 
     const { data } = await query.maybeSingle();
@@ -748,8 +757,7 @@ export interface AdminSettingsData {
   };
   envStatus: {
     hasSupabaseUrl: boolean;
-    hasAnonKey: boolean;
-    hasServiceRoleKey: boolean;
+    hasPublishableKey: boolean;
     nodeEnv: string;
   };
 }
@@ -784,8 +792,7 @@ export async function getAdminSettingsData(): Promise<AdminSettingsData> {
       },
       envStatus: {
         hasSupabaseUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
-        hasAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-        hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+        hasPublishableKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
         nodeEnv: process.env.NODE_ENV || "development",
       },
     };
@@ -802,8 +809,7 @@ export async function getAdminSettingsData(): Promise<AdminSettingsData> {
       },
       envStatus: {
         hasSupabaseUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
-        hasAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-        hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+        hasPublishableKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
         nodeEnv: process.env.NODE_ENV || "development",
       },
     };

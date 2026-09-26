@@ -20,6 +20,18 @@ export const serviceRequestSchema = z
   .refine((value) => value.pickup.trim().toLowerCase() !== value.destination.trim().toLowerCase(), {
     message: "สถานที่ต้นทางและปลายทางต้องไม่เหมือนกัน",
     path: ["destination"],
+  })
+  .refine((value) => {
+    const bangkokToday = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Bangkok",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    return value.serviceDate >= bangkokToday;
+  }, {
+    message: "วันที่ใช้บริการต้องเป็นวันนี้หรือวันถัดไป",
+    path: ["serviceDate"],
   });
 
 export type ServiceRequestInput = z.infer<typeof serviceRequestSchema>;

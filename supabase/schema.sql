@@ -130,12 +130,49 @@ alter table public.messages enable row level security;
 alter table public.reviews enable row level security;
 alter table public.verification_documents enable row level security;
 
-create policy "profiles public safe read" on public.profiles for select using (is_active or id = auth.uid() or public.current_user_role() = 'admin');
+create or replace function public.can_read_profile(target_profile_id uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select
+    target_profile_id = auth.uid()
+    or public.current_user_role() = 'admin'
+    or exists (
+      select 1 from public.profiles target
+      where target.id = target_profile_id and target.role = 'companion'
+        and target.is_active = true and target.verification_status = 'approved'
+    )
+    or exists (
+      select 1 from public.service_requests request
+      where (request.customer_id = target_profile_id or request.companion_id = target_profile_id)
+        and (request.customer_id = auth.uid() or request.companion_id = auth.uid())
+    );
+$$;
+
+revoke all on function public.can_read_profile(uuid) from public;
+grant execute on function public.can_read_profile(uuid) to anon, authenticated;
+
+create policy "profiles permitted read" on public.profiles for select using (public.can_read_profile(id));
 create policy "profiles self insert" on public.profiles for insert with check (id = auth.uid() and role in ('customer', 'companion'));
 create policy "profiles own update" on public.profiles for update using (id = auth.uid()) with check (id = auth.uid() and role <> 'admin');
 create policy "admins manage profiles" on public.profiles for all using (public.current_user_role() = 'admin') with check (public.current_user_role() = 'admin');
+
+create or replace function public.protect_profile_admin_fields()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if public.current_user_role() <> 'admin' and (
+    new.role is distinct from old.role
+    or new.verification_status is distinct from old.verification_status
+    or new.is_active is distinct from old.is_active
+  ) then
+    raise exception 'only admins may update protected profile fields' using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger protect_profile_admin_fields_before_update
+before update on public.profiles for each row execute function public.protect_profile_admin_fields();
 create policy "profile contacts own" on public.profile_contacts for all using (profile_id = auth.uid() or public.current_user_role() = 'admin') with check (profile_id = auth.uid() or public.current_user_role() = 'admin');
-create policy "companion details read" on public.companion_details for select using (true);
+create policy "companion details permitted read" on public.companion_details for select using (public.can_read_profile(profile_id));
 create policy "companion details own write" on public.companion_details for all using (profile_id = auth.uid()) with check (profile_id = auth.uid());
 create policy "trusted contacts own" on public.trusted_contacts for all using (customer_id = auth.uid()) with check (customer_id = auth.uid());
 create policy "requests participants read" on public.service_requests for select using (customer_id = auth.uid() or companion_id = auth.uid() or (status = 'requested' and public.current_user_role() = 'companion') or public.current_user_role() = 'admin');
@@ -220,5 +257,7 @@ create policy "companions upload own verification files" on storage.objects for 
 with check (bucket_id='verification-documents' and (storage.foldername(name))[1]=auth.uid()::text);
 create policy "companions read own verification files" on storage.objects for select to authenticated
 using (bucket_id='verification-documents' and ((storage.foldername(name))[1]=auth.uid()::text or public.current_user_role()='admin'));
+create policy "companions delete own verification files" on storage.objects for delete to authenticated
+using (bucket_id='verification-documents' and (storage.foldername(name))[1]=auth.uid()::text);
 
 -- Assign admin only from the SQL editor or a secure server-side process; never from public registration.

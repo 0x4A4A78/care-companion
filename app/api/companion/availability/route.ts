@@ -15,7 +15,7 @@ export async function PATCH(request: Request) {
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, is_active")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -29,7 +29,7 @@ export async function PATCH(request: Request) {
         { status: 500 },
       );
     }
-    if (!profile || profile.role !== "companion") {
+    if (!profile || profile.role !== "companion" || profile.is_active === false) {
       return NextResponse.json(
         { error: "บัญชีนี้ไม่มีสิทธิ์เปลี่ยนสถานะผู้ช่วย" },
         { status: 403 },

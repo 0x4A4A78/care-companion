@@ -43,4 +43,4 @@ next-env.d.ts
 # local test output
 /.playwright-cli/
 /output/
-
+/tmp/

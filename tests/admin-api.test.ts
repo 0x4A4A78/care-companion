@@ -41,6 +41,8 @@ describe("Admin Users API", () => {
   });
 
   it("updates user role and active status successfully", async () => {
+    const authUser = { id: "admin-1" };
+    const mockAuthSingle = vi.fn(async () => ({ data: { role: "admin", is_active: true }, error: null }));
     const mockSingle = vi.fn(async () => ({
       data: {
         id: "u-123",
@@ -57,7 +59,13 @@ describe("Admin Users API", () => {
     const mockUpdate = vi.fn(() => ({ eq: mockEq }));
 
     createClientMock.mockResolvedValue({
-      from: vi.fn(() => ({ update: mockUpdate })),
+      auth: { getUser: vi.fn(async () => ({ data: { user: authUser } })) },
+      from: vi.fn((table: string) => table === "profiles"
+        ? {
+            select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: mockAuthSingle })) })),
+            update: mockUpdate,
+          }
+        : { update: mockUpdate }),
     });
 
     const req = new Request("http://localhost/api/admin/users", {
@@ -72,6 +80,27 @@ describe("Admin Users API", () => {
     expect(body.success).toBe(true);
     expect(body.data.role).toBe("companion");
     expect(mockUpdate).toHaveBeenCalledWith({ role: "companion", is_active: true });
+  });
+
+  it("rejects a non-admin user", async () => {
+    createClientMock.mockResolvedValue({
+      auth: { getUser: vi.fn(async () => ({ data: { user: { id: "customer-1" } } })) },
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(async () => ({ data: { role: "customer", is_active: true }, error: null })),
+          })),
+        })),
+      })),
+    });
+
+    const res = await patchUser(new Request("http://localhost/api/admin/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: "u-123", isActive: false }),
+    }));
+
+    expect(res.status).toBe(403);
   });
 });
 
@@ -106,7 +135,27 @@ describe("Admin Verifications API", () => {
     expect(data.error).toBe("สถานะไม่ถูกต้อง");
   });
 
+  it("does not approve a companion without verification documents", async () => {
+    const authProfile = vi.fn(async () => ({ data: { role: "admin", is_active: true }, error: null }));
+    createClientMock.mockResolvedValue({
+      auth: { getUser: vi.fn(async () => ({ data: { user: { id: "admin-1" } } })) },
+      from: vi.fn((table: string) => table === "profiles"
+        ? { select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: authProfile })) })) }
+        : { select: vi.fn(() => ({ eq: vi.fn(async () => ({ count: 0, error: null })) })) }),
+    });
+
+    const res = await patchVerification(new Request("http://localhost/api/admin/verifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companionId: "c-123", status: "approved" }),
+    }));
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Companion ต้องส่งเอกสารก่อนอนุมัติ");
+  });
+
   it("approves companion verification successfully", async () => {
+    const mockAuthSingle = vi.fn(async () => ({ data: { role: "admin", is_active: true }, error: null }));
     const mockSingle = vi.fn(async () => ({
       data: {
         id: "c-123",
@@ -122,13 +171,19 @@ describe("Admin Verifications API", () => {
 
     const mockDocEq = vi.fn(async () => ({ error: null }));
     const mockDocUpdate = vi.fn(() => ({ eq: mockDocEq }));
+    const mockDocSelectEq = vi.fn(async () => ({ count: 1, error: null }));
+    const mockDocSelect = vi.fn(() => ({ eq: mockDocSelectEq }));
 
     createClientMock.mockResolvedValue({
+      auth: { getUser: vi.fn(async () => ({ data: { user: { id: "admin-1" } } })) },
       from: vi.fn((table: string) => {
         if (table === "profiles") {
-          return { update: mockProfileUpdate };
+          return {
+            select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: mockAuthSingle })) })),
+            update: mockProfileUpdate,
+          };
         }
-        return { update: mockDocUpdate };
+        return { select: mockDocSelect, update: mockDocUpdate };
       }),
     });
 
@@ -146,6 +201,7 @@ describe("Admin Verifications API", () => {
     expect(mockProfileUpdate).toHaveBeenCalledWith({ verification_status: "approved" });
     expect(mockDocUpdate).toHaveBeenCalledWith({
       status: "approved",
+      reviewed_by: "admin-1",
       review_note: "อนุมัติโดยผู้ดูแลระบบ",
     });
   });

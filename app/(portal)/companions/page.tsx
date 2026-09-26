@@ -6,8 +6,15 @@ import { Avatar, Badge, Card } from "../../../components/ui";
 
 const tones = ["green", "blue", "rose"] as const;
 
-export default async function CompanionsPage() {
-  const companions = await getCompanions();
+export default async function CompanionsPage({ searchParams }: { searchParams: Promise<{ q?: string; area?: string }> }) {
+  const params = await searchParams;
+  const query = params.q?.trim().toLocaleLowerCase("th") ?? "";
+  const area = params.area?.trim().toLocaleLowerCase("th") ?? "";
+  const allCompanions = await getCompanions();
+  const companions = allCompanions.filter((person) => {
+    const searchable = [person.name, person.bio, ...person.skills, ...person.languages].join(" ").toLocaleLowerCase("th");
+    return (!query || searchable.includes(query)) && (!area || person.area.toLocaleLowerCase("th").includes(area));
+  });
 
   return (
     <div className="page-wrap">
@@ -18,24 +25,25 @@ export default async function CompanionsPage() {
         </div>
       </div>
       <Card className="form-card">
+        <form method="get">
         <div className="form-grid">
           <label className="field">
             <span>ค้นหาชื่อหรือความสามารถ</span>
             <div className="top-search">
               <Search size={20} />
-              <input placeholder="เช่น พาไปโรงพยาบาล ช่วยใช้รถเข็น" />
+              <input name="q" defaultValue={params.q ?? ""} placeholder="เช่น พาไปโรงพยาบาล ช่วยใช้รถเข็น" />
             </div>
           </label>
           <label className="field">
             <span>พื้นที่ให้บริการ</span>
-            <select defaultValue="all">
-              <option value="all">ทั้งหมด (กรุงเทพฯ และปริมณฑล)</option>
-              <option value="bkk-inner">กรุงเทพฯ ชั้นใน (สุขุมวิท / สยาม / พญาไท)</option>
-              <option value="thonburi">กรุงเทพฯ ฝั่งธนบุรี (ศิริราช / ปิ่นเกล้า)</option>
-              <option value="suburban">นนทบุรี / ปทุมธานี</option>
-            </select>
+            <input name="area" defaultValue={params.area ?? ""} placeholder="เช่น บางนา นนทบุรี สุขุมวิท" />
           </label>
         </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button type="submit" className="button button-primary"><Search size={18} /> ค้นหาผู้ช่วย</button>
+          {(query || area) && <Link href="/companions" className="button button-ghost">ล้างตัวกรอง</Link>}
+        </div>
+        </form>
         <div className="skill-list" style={{ marginTop: 16 }}>
           <Badge tone="blue">
             <Filter size={14} /> ผู้ช่วยที่พร้อมรับงาน
@@ -57,7 +65,9 @@ export default async function CompanionsPage() {
           </div>
           <h2>ยังไม่พบผู้ช่วยที่เปิดให้บริการในขณะนี้</h2>
           <p style={{ color: "var(--muted)", maxWidth: 520, margin: "10px auto 22px" }}>
-            ขณะนี้ยังไม่มี Companion ที่ได้รับการอนุมัติในระบบ หรือสามารถรันไฟล์ seed data ใน Supabase SQL Editor เพื่อใส่ข้อมูลผู้ช่วยจำลองจริงได้ครับ
+            {query || area
+              ? "ไม่พบผู้ช่วยที่ตรงกับคำค้นหรือพื้นที่ ลองเปลี่ยนเงื่อนไขแล้วค้นหาอีกครั้ง"
+              : "ขณะนี้ยังไม่มี Companion ที่ได้รับการอนุมัติและเปิดรับงาน กรุณาลองใหม่ภายหลังหรือสร้างคำขอไว้ก่อนได้"}
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
             <Link href="/customer/request" className="button button-primary">

@@ -48,6 +48,7 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [globalSearch, setGlobalSearch] = useState("");
   const meta = roleMeta[role];
   const mobileItems = nav[role];
 
@@ -77,7 +78,21 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
     <PortalUserContext.Provider value={{ name: userName, role }}><div className="portal">
       <header className="topbar">
         <Brand />
-        <label className="top-search"><Search size={20} /><span className="sr-only">ค้นหา</span><input placeholder="ค้นหางาน ผู้ช่วย หรือข้อความ..." /></label>
+        {role === "customer" ? (
+          <form
+            className="top-search"
+            role="search"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const query = globalSearch.trim();
+              router.push(query ? `/companions?q=${encodeURIComponent(query)}` : "/companions");
+            }}
+          >
+            <Search size={20} />
+            <label className="sr-only" htmlFor="portal-search">ค้นหาผู้ช่วย</label>
+            <input id="portal-search" value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="ค้นหาชื่อหรือความสามารถของผู้ช่วย..." />
+          </form>
+        ) : <div className="top-search-placeholder" aria-hidden="true" />}
         <div className="top-actions" style={{ position: "relative" }}>
           <button
             className="icon-button"

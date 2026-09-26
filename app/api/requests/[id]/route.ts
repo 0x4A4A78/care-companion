@@ -22,10 +22,10 @@ export async function PATCH(
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("role, verification_status")
+      .select("role, verification_status, is_active")
       .eq("id", user.id)
       .maybeSingle();
-    if (profileError || !profile || !["customer", "companion", "admin"].includes(profile.role)) {
+    if (profileError || !profile || profile.is_active === false || !["customer", "companion", "admin"].includes(profile.role)) {
       return NextResponse.json({ error: "ไม่พบสิทธิ์ผู้ใช้งาน" }, { status: 403 });
     }
 

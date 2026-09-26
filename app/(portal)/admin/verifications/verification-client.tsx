@@ -3,6 +3,7 @@
 import {
   CheckCircle2,
   Clock,
+  FileText,
   MapPin,
   ShieldCheck,
   XCircle,
@@ -12,6 +13,7 @@ import { toast } from "sonner";
 import { Avatar, Badge, Card } from "../../../../components/ui";
 import { formatThaiDate } from "../../../../lib/data/presentation";
 import type { AdminVerificationItem } from "../../../../lib/data/queries";
+import { verificationDocumentLabels } from "../../../../lib/verification-document";
 
 export function VerificationClient({
   initialCompanions,
@@ -139,7 +141,8 @@ export function VerificationClient({
                       type="button"
                       className="button button-primary"
                       style={{ background: "linear-gradient(135deg, #10b981, #059669)", minHeight: 40, padding: "8px 18px", fontSize: ".9rem" }}
-                      disabled={updatingId === item.id}
+                      disabled={updatingId === item.id || item.documents.length === 0}
+                      title={item.documents.length === 0 ? "Companion ต้องส่งเอกสารก่อนอนุมัติ" : undefined}
                       onClick={() => updateStatus(item.id, "approved")}
                     >
                       <CheckCircle2 size={16} /> อนุมัติสิทธิ์
@@ -202,6 +205,21 @@ export function VerificationClient({
                   ))}
                 </div>
               )}
+
+              <div style={{ marginTop: 14 }}>
+                <strong style={{ fontSize: ".9rem" }}>เอกสารที่ส่ง ({item.documents.length})</strong>
+                {item.documents.length === 0 ? (
+                  <p style={{ color: "var(--muted)", fontSize: ".86rem", margin: "6px 0 0" }}>ยังไม่ได้ส่งเอกสารยืนยันตัวตน</p>
+                ) : (
+                  <div className="skill-list" style={{ marginTop: 8 }}>
+                    {item.documents.map((document) => (
+                      <a key={document.id} className="button button-ghost" style={{ minHeight: 36, padding: "6px 12px", fontSize: ".84rem" }} href={`/api/admin/verifications/file?id=${encodeURIComponent(document.id)}`} target="_blank" rel="noreferrer">
+                        <FileText size={15} /> เปิดดู {verificationDocumentLabels[document.documentType as keyof typeof verificationDocumentLabels] ?? document.documentType}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
             </Card>
           ))}
         </div>

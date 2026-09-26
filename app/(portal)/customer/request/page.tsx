@@ -511,13 +511,21 @@ function RequestConversation() {
   }
 
   // Quick helper dates
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const toDateInputValue = (date: Date) => {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Bangkok",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  };
+  const todayStr = toDateInputValue(new Date());
   const tomorrowDate = new Date();
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-  const tomorrowStr = tomorrowDate.toISOString().slice(0, 10);
+  const tomorrowStr = toDateInputValue(tomorrowDate);
   const dayAfterTomorrow = new Date();
   dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
-  const dayAfterStr = dayAfterTomorrow.toISOString().slice(0, 10);
+  const dayAfterStr = toDateInputValue(dayAfterTomorrow);
 
   if (createdRequest) {
     return (
@@ -721,6 +729,7 @@ function RequestConversation() {
                           </span>
                           <input
                             type="date"
+                            min={todayStr}
                             value={data.serviceDate}
                             onChange={(e) => setData({ ...data, serviceDate: e.target.value })}
                             style={{

@@ -177,7 +177,7 @@ export function RequestTableClient({
                   </td>
                   <td>
                     <Link
-                      href={`/customer/jobs/${r.referenceNo}`}
+                      href={`/admin/requests/${r.referenceNo}`}
                       className="button button-ghost"
                       style={{ minHeight: 32, padding: "4px 10px", fontSize: ".8rem", borderRadius: 8, display: "inline-flex", gap: 4 }}
                     >

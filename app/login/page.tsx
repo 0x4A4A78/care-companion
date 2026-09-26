@@ -8,7 +8,6 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { Suspense, useState } from "react";
 import { Brand } from "../../components/brand";
 import { GoogleSignIn } from "../../components/google-sign-in";
@@ -61,44 +60,6 @@ function LoginContent() {
           </button>
         </div>
         <GoogleSignIn role={role} />
-        <div
-          className="admin-demo-box"
-          style={{
-            marginTop: 18,
-            padding: "14px 16px",
-            borderRadius: 14,
-            background: "#f0f7ff",
-            border: "1.5px dashed #93c5fd",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <ShieldCheck size={26} style={{ color: "var(--blue)", flex: "none" }} />
-            <div style={{ textAlign: "left" }}>
-              <strong style={{ display: "block", fontSize: ".92rem", color: "var(--blue-dark)" }}>
-                โหมดทดสอบผู้ดูแลระบบ (Admin)
-              </strong>
-              <small style={{ color: "var(--muted)", fontSize: ".8rem" }}>
-                สำหรับทดสอบและตรวจงาน เข้าดูแดชบอร์ดจัดการระบบ
-              </small>
-            </div>
-          </div>
-          <Link
-            href="/admin"
-            className="button button-primary"
-            style={{
-              minHeight: 40,
-              padding: "6px 14px",
-              fontSize: ".88rem",
-              flex: "none",
-            }}
-          >
-            เข้าหน้า Admin
-          </Link>
-        </div>
         <p className="login-note">
           การดำเนินการต่อถือว่าคุณยอมรับเงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัว
         </p>

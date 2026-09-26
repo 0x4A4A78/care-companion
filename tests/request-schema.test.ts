@@ -4,7 +4,7 @@ import { serviceRequestSchema } from "../lib/request-schema";
 
 const validRequest = {
   category: "hospital",
-  serviceDate: "2026-09-24",
+  serviceDate: "2030-09-24",
   startTime: "09:00",
   durationHours: 3,
   pickup: "บ้านเลขที่ 99 ถนนสุขุมวิท กรุงเทพฯ",
@@ -42,6 +42,10 @@ describe("service request validation", () => {
       serviceRequestSchema.safeParse({ ...validRequest, notes: "ก".repeat(1001) })
         .success,
     ).toBe(false);
+  });
+
+  it("rejects a service date in the past", () => {
+    expect(serviceRequestSchema.safeParse({ ...validRequest, serviceDate: "2020-01-01" }).success).toBe(false);
   });
 
   it("accepts pickup and destination with at least 3 characters", () => {

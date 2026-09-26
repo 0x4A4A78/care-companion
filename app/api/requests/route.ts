@@ -14,6 +14,14 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role, is_active")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (profileError || !profile || profile.role !== "customer" || profile.is_active === false) {
+    return NextResponse.json({ error: "เฉพาะ Customer ที่เปิดใช้งานเท่านั้นที่สร้างคำขอได้" }, { status: 403 });
+  }
   const { data, error } = await supabase
     .from("service_requests")
     .insert(toServiceRequestInsert(parsed.data, user.id))

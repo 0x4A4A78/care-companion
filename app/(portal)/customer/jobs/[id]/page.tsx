@@ -2,6 +2,7 @@ import {
   Check,
   ChevronLeft,
   Clock,
+  ExternalLink,
   MapPin,
   Phone,
   ShieldCheck,
@@ -13,6 +14,7 @@ import { Avatar, Badge, Card } from "../../../../../components/ui";
 import { getPortalUser } from "../../../../../lib/auth/portal-user";
 import { formatThaiDate, serviceCategoryLabel } from "../../../../../lib/data/presentation";
 import { getRequestByReference, getRequestMessages } from "../../../../../lib/data/queries";
+import { buildOpenStreetMapUrl } from "../../../../../lib/map-links";
 import { createClient } from "../../../../../lib/supabase/server";
 import { CancelRequestButton, JobChatSection } from "./job-actions";
 import { JobDetailReviewSection } from "./job-review-action";
@@ -47,6 +49,7 @@ export default async function JobDetail({
 
   const messages = await getRequestMessages(request.id);
   const canCancel = ["requested", "accepted"].includes(request.status);
+  const pickupMapUrl = buildOpenStreetMapUrl(request.pickupLatitude, request.pickupLongitude);
 
   let initialReview: { rating: number; comment: string | null } | null = null;
   if (request.status === "completed" && request.companionId) {
@@ -123,6 +126,11 @@ export default async function JobDetail({
               <div>
                 <small>ต้นทาง · {request.startTime} น.</small>
                 <strong>{request.pickup}</strong>
+                {pickupMapUrl && (
+                  <a href={pickupMapUrl} target="_blank" rel="noreferrer" className="map-link-row">
+                    <ExternalLink size={16} /> เปิดแผนที่จุดนัดรับ
+                  </a>
+                )}
               </div>
             </div>
             <div className="route" style={{ marginTop: 20 }}>

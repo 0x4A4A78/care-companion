@@ -20,6 +20,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -34,6 +35,11 @@ import {
   type ConversationStep,
 } from "../../../../lib/request-conversation";
 import { serviceRequestSchema } from "../../../../lib/request-schema";
+
+const LocationPickerMap = dynamic(() => import("../../../../components/location-picker-map"), {
+  ssr: false,
+  loading: () => <div className="location-map-loading">กำลังเปิดแผนที่...</div>,
+});
 
 const categories = [
   { id: "hospital", label: "ไปพบแพทย์ / โรงพยาบาล", Icon: Stethoscope },
@@ -57,7 +63,7 @@ const steps: { id: ConversationStep; question: string; hint: string }[] = [
   {
     id: "pickup",
     question: "ให้ผู้ช่วยเดินทางไปรับที่ไหนครับ?",
-    hint: "พิมพ์ชื่อบ้าน ซอย คอนโด หรือจุดสังเกตในช่องพิมพ์ด้านล่างได้เลยครับ",
+    hint: "พิมพ์ชื่อบ้าน ซอย หรือจุดสังเกต หรือกดเปิดแผนที่เพื่อแชร์ตำแหน่งและปักหมุดได้เลยครับ",
   },
   {
     id: "destination",
@@ -100,6 +106,9 @@ type RequestData = {
   startTime: string;
   durationHours: number;
   pickup: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
+  pickupAccuracyMeters?: number;
   destination: string;
   supportNeeds: string[];
   notes: string;
@@ -135,6 +144,7 @@ function RequestConversation() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
+  const [showPickupMap, setShowPickupMap] = useState(false);
   const [voiceMode, setVoiceMode] = useState(searchParams.get("voice") === "1");
   const [createdRequest, setCreatedRequest] = useState<{ reference_no: string } | null>(null);
 
@@ -795,6 +805,37 @@ function RequestConversation() {
                   {/* Pickup suggestions */}
                   {currentStep.id === "pickup" && (
                     <div style={{ display: "grid", gap: 8 }}>
+                      <button
+                        type="button"
+                        className="button button-primary button-full"
+                        onClick={() => setShowPickupMap((visible) => !visible)}
+                      >
+                        <MapPin size={18} />
+                        {showPickupMap ? "ซ่อนแผนที่" : "แชร์ตำแหน่งปัจจุบัน / ปักหมุด"}
+                      </button>
+                      {showPickupMap && (
+                        <LocationPickerMap
+                          value={data.pickupLatitude !== undefined && data.pickupLongitude !== undefined
+                            ? {
+                                latitude: data.pickupLatitude,
+                                longitude: data.pickupLongitude,
+                                accuracyMeters: data.pickupAccuracyMeters,
+                              }
+                            : undefined}
+                          onChange={(location) => setData((previous) => ({
+                            ...previous,
+                            pickup: previous.pickup.trim() || "ตำแหน่งที่ปักหมุดบนแผนที่",
+                            pickupLatitude: location.latitude,
+                            pickupLongitude: location.longitude,
+                            pickupAccuracyMeters: location.accuracyMeters,
+                          }))}
+                          onClose={() => setShowPickupMap(false)}
+                          onConfirm={() => {
+                            setShowPickupMap(false);
+                            setTimeout(advance, 150);
+                          }}
+                        />
+                      )}
                       <span style={{ fontSize: ".82rem", color: "var(--muted)" }}>
                         สถานที่แนะนำด่วน (หรือพิมพ์ระบุด้านล่าง):
                       </span>
@@ -806,7 +847,13 @@ function RequestConversation() {
                             className="line-quick-btn"
                             style={{ minHeight: 38, padding: "6px 12px", fontSize: ".88rem" }}
                             onClick={() => {
-                              setData({ ...data, pickup: p });
+                              setData((previous) => ({
+                                ...previous,
+                                pickup: p,
+                                pickupLatitude: undefined,
+                                pickupLongitude: undefined,
+                                pickupAccuracyMeters: undefined,
+                              }));
                               setTimeout(advance, 150);
                             }}
                           >

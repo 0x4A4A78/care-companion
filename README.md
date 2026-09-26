@@ -46,6 +46,9 @@ npm run dev -- -p 3001
     - `supabase/migration_companion_workflow_security.sql`
     - `supabase/migration_profile_privacy_and_permissions.sql`
     - `supabase/migration_verification_storage.sql`
+    - `supabase/migration_pickup_location.sql`
+
+ฟีเจอร์แชร์ตำแหน่งใช้ Browser Geolocation และแผนที่ OpenStreetMap จึงไม่ต้องตั้งค่า API key เพิ่ม แต่เบราว์เซอร์จะอนุญาตตำแหน่งเฉพาะ `https://` หรือ `localhost` และผู้ใช้ต้องกดยอมรับสิทธิ์ Location
 
 ## ตรวจคุณภาพ
 

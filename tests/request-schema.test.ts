@@ -8,6 +8,9 @@ const validRequest = {
   startTime: "09:00",
   durationHours: 3,
   pickup: "บ้านเลขที่ 99 ถนนสุขุมวิท กรุงเทพฯ",
+  pickupLatitude: 13.7563,
+  pickupLongitude: 100.5018,
+  pickupAccuracyMeters: 18,
   destination: "โรงพยาบาลศิริราช กรุงเทพฯ",
   supportNeeds: ["เดินเป็นเพื่อน", "ช่วยถือของชิ้นเล็ก"],
   notes: "เดินช้า กรุณามาถึงก่อนเวลานัด 15 นาที",
@@ -63,5 +66,11 @@ describe("service request validation", () => {
         pickup: "ab",
       }).success,
     ).toBe(false);
+  });
+
+  it("requires valid paired pickup coordinates", () => {
+    expect(serviceRequestSchema.safeParse({ ...validRequest, pickupLatitude: 91 }).success).toBe(false);
+    expect(serviceRequestSchema.safeParse({ ...validRequest, pickupLongitude: undefined }).success).toBe(false);
+    expect(serviceRequestSchema.safeParse({ ...validRequest, pickupLatitude: undefined, pickupLongitude: undefined, pickupAccuracyMeters: undefined }).success).toBe(true);
   });
 });

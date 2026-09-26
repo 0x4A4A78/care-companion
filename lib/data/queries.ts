@@ -32,6 +32,9 @@ type RequestRow = {
   start_time: string;
   duration_hours: number | string;
   pickup: string;
+  pickup_latitude: number | string | null;
+  pickup_longitude: number | string | null;
+  pickup_accuracy_meters: number | string | null;
   destination: string;
   support_needs: string[];
   notes: string;
@@ -50,6 +53,9 @@ function mapRequest(row: RequestRow): ServiceRequestView {
     startTime: (row.start_time ?? "").slice(0, 5),
     durationHours: Number(row.duration_hours),
     pickup: row.pickup,
+    pickupLatitude: row.pickup_latitude === null || row.pickup_latitude === undefined ? null : Number(row.pickup_latitude),
+    pickupLongitude: row.pickup_longitude === null || row.pickup_longitude === undefined ? null : Number(row.pickup_longitude),
+    pickupAccuracyMeters: row.pickup_accuracy_meters === null || row.pickup_accuracy_meters === undefined ? null : Number(row.pickup_accuracy_meters),
     destination: row.destination,
     supportNeeds: row.support_needs ?? [],
     notes: row.notes,
@@ -163,7 +169,7 @@ export async function getCustomerRequests(customerId: string, limit = 20): Promi
     const supabase = await createClient();
     const { data } = await supabase
       .from("service_requests")
-      .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, destination, support_needs, notes, status, created_at")
+      .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, pickup_latitude, pickup_longitude, pickup_accuracy_meters, destination, support_needs, notes, status, created_at")
       .eq("customer_id", customerId)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -218,7 +224,7 @@ export async function getOpenRequests(limit = 10): Promise<ServiceRequestView[]>
     // migration_open_request_feed.sql to be applied.
     const { data, error } = await supabase
       .from("service_requests")
-      .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, destination, support_needs, notes, status, created_at")
+      .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, pickup_latitude, pickup_longitude, pickup_accuracy_meters, destination, support_needs, notes, status, created_at")
       .eq("status", "requested")
       .is("companion_id", null)
       .order("created_at", { ascending: false })
@@ -256,7 +262,7 @@ export async function getCompanionRequests(companionId: string): Promise<Service
     const supabase = await createClient();
     const { data } = await supabase
       .from("service_requests")
-      .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, destination, support_needs, notes, status, created_at")
+      .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, pickup_latitude, pickup_longitude, pickup_accuracy_meters, destination, support_needs, notes, status, created_at")
       .eq("companion_id", companionId)
       .order("service_date", { ascending: true });
 
@@ -288,7 +294,7 @@ export async function getCustomerRequestsWithReviews(customerId: string): Promis
     const [{ data: requestsData }, { data: reviewsData }] = await Promise.all([
       supabase
         .from("service_requests")
-        .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, destination, support_needs, notes, status, created_at")
+        .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, pickup_latitude, pickup_longitude, pickup_accuracy_meters, destination, support_needs, notes, status, created_at")
         .eq("customer_id", customerId)
         .order("created_at", { ascending: false }),
       supabase
@@ -423,7 +429,7 @@ export async function getRequestByReference(refOrId: string): Promise<ServiceReq
     const supabase = await createClient();
     let query = supabase
       .from("service_requests")
-      .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, destination, support_needs, notes, status, created_at");
+      .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, pickup_latitude, pickup_longitude, pickup_accuracy_meters, destination, support_needs, notes, status, created_at");
 
     if (/^CC-[A-Z0-9]{8}$/i.test(refOrId)) {
       query = query.eq("reference_no", refOrId);
@@ -718,7 +724,7 @@ export async function getAllRequestsForAdmin(): Promise<ServiceRequestView[]> {
     const supabase = await createClient();
     const { data } = await supabase
       .from("service_requests")
-      .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, destination, support_needs, notes, status, created_at")
+      .select("id, reference_no, customer_id, companion_id, category, service_date, start_time, duration_hours, pickup, pickup_latitude, pickup_longitude, pickup_accuracy_meters, destination, support_needs, notes, status, created_at")
       .order("created_at", { ascending: false });
 
     const requests = ((data ?? []) as RequestRow[]).map(mapRequest);

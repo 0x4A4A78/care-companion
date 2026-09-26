@@ -56,6 +56,9 @@ create table public.service_requests (
   start_time time not null,
   duration_hours numeric(4,1) not null check (duration_hours between 0.5 and 12),
   pickup text not null check (char_length(pickup) between 3 and 300),
+  pickup_latitude double precision check (pickup_latitude between -90 and 90),
+  pickup_longitude double precision check (pickup_longitude between -180 and 180),
+  pickup_accuracy_meters double precision check (pickup_accuracy_meters between 0 and 10000),
   destination text not null check (char_length(destination) between 3 and 300),
   support_needs text[] not null default '{}',
   notes text not null default '' check (char_length(notes) <= 1000),
@@ -67,7 +70,11 @@ create table public.service_requests (
   cancellation_reason text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (pickup <> destination)
+  check (pickup <> destination),
+  check (
+    (pickup_latitude is null and pickup_longitude is null)
+    or (pickup_latitude is not null and pickup_longitude is not null)
+  )
 );
 
 create table public.messages (

@@ -13,6 +13,9 @@ export const serviceRequestSchema = z
     startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "กรุณาระบุเวลาในรูปแบบ 00:00 - 23:59"),
     durationHours: z.number().min(0.5, "ระยะเวลาต้องไม่น้อยกว่า 30 นาที").max(12, "ระยะเวลาต้องไม่เกิน 12 ชั่วโมง"),
     pickup: z.string().trim().min(3, "สถานที่ต้นทางต้องมีความยาวอย่างน้อย 3 ตัวอักษร").max(300),
+    pickupLatitude: z.number().min(-90).max(90).optional(),
+    pickupLongitude: z.number().min(-180).max(180).optional(),
+    pickupAccuracyMeters: z.number().min(0).max(10000).optional(),
     destination: z.string().trim().min(3, "จุดหมายปลายทางต้องมีความยาวอย่างน้อย 3 ตัวอักษร").max(300),
     supportNeeds: z.array(z.string().trim().min(1).max(100)).max(8),
     notes: z.string().trim().max(1000, "รายละเอียดเพิ่มเติมต้องไม่เกิน 1,000 ตัวอักษร"),
@@ -20,6 +23,14 @@ export const serviceRequestSchema = z
   .refine((value) => value.pickup.trim().toLowerCase() !== value.destination.trim().toLowerCase(), {
     message: "สถานที่ต้นทางและปลายทางต้องไม่เหมือนกัน",
     path: ["destination"],
+  })
+  .refine((value) => (value.pickupLatitude === undefined) === (value.pickupLongitude === undefined), {
+    message: "ต้องระบุละติจูดและลองจิจูดของจุดนัดรับให้ครบ",
+    path: ["pickupLatitude"],
+  })
+  .refine((value) => value.pickupAccuracyMeters === undefined || value.pickupLatitude !== undefined, {
+    message: "ค่าความแม่นยำต้องใช้ร่วมกับพิกัดจุดนัดรับ",
+    path: ["pickupAccuracyMeters"],
   })
   .refine((value) => {
     const bangkokToday = new Intl.DateTimeFormat("en-CA", {

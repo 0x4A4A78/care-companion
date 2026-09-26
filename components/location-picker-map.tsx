@@ -26,7 +26,13 @@ function MapInteraction({ value, onChange }: { value?: PickupLocation; onChange:
   });
 
   useEffect(() => {
-    if (value) map.flyTo([value.latitude, value.longitude], 17, { duration: 0.7 });
+    if (!value) return;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      map.setView([value.latitude, value.longitude], 17);
+      return;
+    }
+    map.flyTo([value.latitude, value.longitude], 17, { duration: 0.7 });
   }, [map, value]);
   return null;
 }

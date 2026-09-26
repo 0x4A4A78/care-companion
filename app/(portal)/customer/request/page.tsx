@@ -8,7 +8,9 @@ import {
   Check,
   CircleEllipsis,
   Clock,
+  AlertTriangle,
   Landmark,
+  Lightbulb,
   MapPin,
   Mic,
   MicOff,
@@ -161,7 +163,11 @@ function RequestConversation() {
 
   // Auto scroll to latest chat bubble
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    endRef.current?.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "nearest",
+    });
   }, [stepIndex, error, listening]);
 
   // Read stored voice intent from landing page if available
@@ -617,9 +623,9 @@ function RequestConversation() {
               type="button"
               className={`voice-mode-toggle ${voiceMode ? "active" : ""}`}
               onClick={() => setVoiceMode((v) => !v)}
-              style={{ minHeight: 34, padding: "5px 9px", fontSize: ".78rem" }}
               title={voiceMode ? "ปิดเสียงอ่าน" : "เปิดเสียงอ่านอัตโนมัติ"}
               aria-label={voiceMode ? "ปิดเสียงอ่าน" : "เปิดเสียงอ่านอัตโนมัติ"}
+              aria-pressed={voiceMode}
             >
               {voiceMode ? <Volume2 size={15} /> : <VolumeX size={15} />}
               <span className="voice-toggle-text">{voiceMode ? "เสียงเปิด" : "เสียงปิด"}</span>
@@ -673,8 +679,9 @@ function RequestConversation() {
                 <strong style={{ fontSize: "1.05rem", display: "block", color: "var(--navy)" }}>
                   {currentStep.question}
                 </strong>
-                <small style={{ display: "block", color: "var(--muted)", marginTop: 4, fontSize: ".84rem" }}>
-                  💡 {currentStep.hint}
+                <small className="line-step-hint">
+                  <Lightbulb size={16} aria-hidden="true" />
+                  <span>{currentStep.hint}</span>
                 </small>
 
                 {/* Quick Action Options inside Bot Bubble */}
@@ -706,7 +713,7 @@ function RequestConversation() {
                         <button
                           type="button"
                           className={`line-quick-btn ${data.serviceDate === todayStr ? "selected" : ""}`}
-                          style={{ minHeight: 40, padding: "8px 2px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
+                          style={{ minHeight: 48, padding: "8px 4px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
                           onClick={() => setData({ ...data, serviceDate: todayStr })}
                         >
                           วันนี้
@@ -714,7 +721,7 @@ function RequestConversation() {
                         <button
                           type="button"
                           className={`line-quick-btn ${data.serviceDate === tomorrowStr ? "selected" : ""}`}
-                          style={{ minHeight: 40, padding: "8px 2px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
+                          style={{ minHeight: 48, padding: "8px 4px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
                           onClick={() => setData({ ...data, serviceDate: tomorrowStr })}
                         >
                           พรุ่งนี้
@@ -776,7 +783,7 @@ function RequestConversation() {
                               type="button"
                               className={`line-quick-btn ${data.startTime === t ? "selected" : ""}`}
                               style={{
-                                minHeight: 36,
+                                minHeight: 48,
                                 padding: "4px 2px",
                                 fontSize: ".82rem",
                                 justifyContent: "center",
@@ -809,6 +816,7 @@ function RequestConversation() {
                         type="button"
                         className="button button-primary button-full"
                         onClick={() => setShowPickupMap((visible) => !visible)}
+                        aria-expanded={showPickupMap}
                       >
                         <MapPin size={18} />
                         {showPickupMap ? "ซ่อนแผนที่" : "แชร์ตำแหน่งปัจจุบัน / ปักหมุด"}
@@ -845,7 +853,7 @@ function RequestConversation() {
                             key={p}
                             type="button"
                             className="line-quick-btn"
-                            style={{ minHeight: 38, padding: "6px 12px", fontSize: ".88rem" }}
+                            style={{ minHeight: 48, padding: "8px 12px", fontSize: ".88rem" }}
                             onClick={() => {
                               setData((previous) => ({
                                 ...previous,
@@ -882,7 +890,7 @@ function RequestConversation() {
                             key={d}
                             type="button"
                             className="line-quick-btn"
-                            style={{ minHeight: 38, padding: "6px 12px", fontSize: ".88rem" }}
+                            style={{ minHeight: 48, padding: "8px 12px", fontSize: ".88rem" }}
                             onClick={() => {
                               setData({ ...data, destination: d });
                               setTimeout(advance, 150);
@@ -907,7 +915,7 @@ function RequestConversation() {
                             justifyContent: "center",
                             fontSize: ".92rem",
                             padding: "8px 4px",
-                            minHeight: 42,
+                            minHeight: 48,
                             whiteSpace: "nowrap",
                           }}
                           onClick={() => {
@@ -1090,12 +1098,12 @@ function RequestConversation() {
                           disabled={busy}
                           onClick={submitRequest}
                         >
-                          {busy ? "กำลังส่งคำขอ..." : "ยืนยันและส่งคำขอทันที ✨"}
+                          {busy ? "กำลังส่งคำขอ..." : "ยืนยันและส่งคำขอทันที"}
                         </button>
                         <button
                           type="button"
                           className="button button-ghost button-full"
-                          style={{ minHeight: 40, fontSize: ".9rem" }}
+                          style={{ minHeight: 48, fontSize: ".9rem" }}
                           onClick={() => setStepIndex(0)}
                         >
                           <RotateCcw size={15} /> เริ่มกรอกใหม่ตั้งแต่แรก
@@ -1107,19 +1115,9 @@ function RequestConversation() {
 
                 {/* Error Banner */}
                 {error && (
-                  <p
-                    style={{
-                      margin: "10px 0 0",
-                      padding: "8px 12px",
-                      borderRadius: 10,
-                      background: "#fff0f1",
-                      color: "var(--red)",
-                      fontWeight: 700,
-                      fontSize: ".9rem",
-                    }}
-                    role="alert"
-                  >
-                    ⚠️ {error}
+                  <p className="line-form-error" role="alert">
+                    <AlertTriangle size={18} aria-hidden="true" />
+                    <span>{error}</span>
                   </p>
                 )}
               </div>
@@ -1147,6 +1145,7 @@ function RequestConversation() {
                 setStepIndex((idx) => Math.max(0, idx - 1));
               }}
               title="ย้อนกลับไปข้อก่อนหน้า"
+              aria-label="ย้อนกลับไปข้อก่อนหน้า"
             >
               <ArrowLeft size={20} />
             </button>
@@ -1155,6 +1154,7 @@ function RequestConversation() {
               href="/customer"
               className="line-mic-btn"
               title="ยกเลิกและกลับหน้าหลัก"
+              aria-label="ยกเลิกและกลับหน้าหลัก"
               style={{ display: "grid", placeItems: "center" }}
             >
               <ArrowLeft size={20} />
@@ -1167,6 +1167,8 @@ function RequestConversation() {
             className={`line-mic-btn ${listening ? "listening" : ""}`}
             onClick={() => (listening ? recognitionRef.current?.stop() : startListening())}
             title={listening ? "กำลังฟัง... กดเพื่อหยุด" : "กดเพื่อพูดตอบด้วยเสียง"}
+            aria-label={listening ? "หยุดฟังเสียง" : "ตอบด้วยเสียง"}
+            aria-pressed={listening}
           >
             {listening ? <MicOff size={22} /> : <Mic size={22} />}
           </button>
@@ -1180,7 +1182,7 @@ function RequestConversation() {
             onChange={(e) => setComposerText(e.target.value)}
             placeholder={
               listening
-                ? "🎙️ กำลังฟังเสียงของคุณตาคุณยาย..."
+                ? "กำลังฟังเสียงของคุณตาคุณยาย..."
                 : placeholderMap[currentStep.id] || "พิมพ์ข้อความที่นี่..."
             }
           />

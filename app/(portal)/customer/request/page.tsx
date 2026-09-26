@@ -52,7 +52,7 @@ const steps: { id: ConversationStep; question: string; hint: string }[] = [
   {
     id: "datetime",
     question: "ต้องการให้ผู้ช่วยไปพบในวันไหน และเวลาประมาณกี่โมงครับ?",
-    hint: "กดเลือกวันที่และเวลาด้านล่าง หรือพิมพ์ เช่น 'พรุ่งนี้ 9 โมงเช้า' ได้ครับ",
+    hint: "พิมพ์คุยได้เลย เช่น 'อีก 3 วัน 10 โมงเช้า', 'พรุ่งนี้บ่ายสอง' หรือ 'วันที่ 28 เวลา 10 โมง' ครับ",
   },
   {
     id: "pickup",
@@ -330,7 +330,7 @@ function RequestConversation() {
         if (data.serviceDate) setTimeout(advance, 200);
         return;
       }
-      setError("กรุณาระบุวันและเวลา เช่น พรุ่งนี้ 9 โมงเช้า หรือเลือกจากปุ่มด้านบนครับ");
+      setError("ยังอ่านวันหรือเวลาไม่ครบครับ ลองพิมพ์ เช่น ‘อีก 3 วัน 10 โมงเช้า’ หรือ ‘วันที่ 28 บ่ายสอง’");
       return;
     }
 
@@ -523,9 +523,6 @@ function RequestConversation() {
   const tomorrowDate = new Date();
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
   const tomorrowStr = toDateInputValue(tomorrowDate);
-  const dayAfterTomorrow = new Date();
-  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
-  const dayAfterStr = toDateInputValue(dayAfterTomorrow);
 
   if (createdRequest) {
     return (
@@ -558,7 +555,7 @@ function RequestConversation() {
 
   const placeholderMap: Record<ConversationStep, string> = {
     category: "พิมพ์บอกประเภทธุระ เช่น ไปโรงพยาบาล...",
-    datetime: "พิมพ์วันและเวลา เช่น พรุ่งนี้ 9 โมงเช้า หรือเลือกด้านบน...",
+    datetime: "เช่น อีก 3 วัน 10 โมงเช้า หรือ วันที่ 28 บ่ายสอง...",
     pickup: "พิมพ์สถานที่นัดรับ เช่น บ้านเลขที่ 123 ซอยสุขุมวิท 4...",
     destination: "พิมพ์จุดหมายปลายทาง เช่น โรงพยาบาลศิริราช...",
     duration: "พิมพ์จำนวนชั่วโมง เช่น 3 หรือ 4 ชั่วโมง...",
@@ -695,7 +692,7 @@ function RequestConversation() {
                   {/* Datetime choices */}
                   {currentStep.id === "datetime" && (
                     <div style={{ display: "grid", gap: 10, width: "100%", minWidth: 0 }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6 }}>
                         <button
                           type="button"
                           className={`line-quick-btn ${data.serviceDate === todayStr ? "selected" : ""}`}
@@ -711,14 +708,6 @@ function RequestConversation() {
                           onClick={() => setData({ ...data, serviceDate: tomorrowStr })}
                         >
                           พรุ่งนี้
-                        </button>
-                        <button
-                          type="button"
-                          className={`line-quick-btn ${data.serviceDate === dayAfterStr ? "selected" : ""}`}
-                          style={{ minHeight: 40, padding: "8px 2px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
-                          onClick={() => setData({ ...data, serviceDate: dayAfterStr })}
-                        >
-                          มะรืนนี้
                         </button>
                       </div>
 

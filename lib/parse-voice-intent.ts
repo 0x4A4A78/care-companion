@@ -54,33 +54,106 @@ const supportMap: [string[], string][] = [
   [["รอ", "รอคิว", "เสร็จ"], "รอเป็นเพื่อนจนเสร็จธุระ"],
 ];
 
-/* ─── Time parsing helpers ─── */
+/* ─── Date & time parsing helpers ─── */
 
-function parseDateFromText(text: string): string | undefined {
-  const today = new Date();
+const thaiNumberWords: Record<string, number> = {
+  "ศูนย์": 0, "หนึ่ง": 1, "เอ็ด": 1, "สอง": 2, "สาม": 3, "สี่": 4,
+  "ห้า": 5, "หก": 6, "เจ็ด": 7, "แปด": 8, "เก้า": 9, "สิบ": 10,
+  "สิบเอ็ด": 11, "สิบสอง": 12,
+};
+
+function parseThaiNumber(value: string): number | undefined {
+  const normalized = value.replace(/\s+/g, "");
+  if (/^\d{1,2}$/.test(normalized)) return Number(normalized);
+  if (normalized in thaiNumberWords) return thaiNumberWords[normalized];
+  if (normalized.startsWith("ยี่สิบ")) {
+    const unit = normalized.slice("ยี่สิบ".length);
+    return unit ? 20 + (thaiNumberWords[unit] ?? Number.NaN) : 20;
+  }
+  if (normalized.startsWith("สามสิบ")) {
+    const unit = normalized.slice("สามสิบ".length);
+    return unit ? 30 + (thaiNumberWords[unit] ?? Number.NaN) : 30;
+  }
+  if (normalized.startsWith("สิบ")) {
+    const unit = normalized.slice("สิบ".length);
+    return unit ? 10 + (thaiNumberWords[unit] ?? Number.NaN) : 10;
+  }
+  return undefined;
+}
+
+function bangkokDateParts(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value);
+  return { year: get("year"), month: get("month"), day: get("day") };
+}
+
+function calendarDate(year: number, month: number, day: number): string | undefined {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() + 1 !== month || date.getUTCDate() !== day) return undefined;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function addCalendarDays(base: { year: number; month: number; day: number }, amount: number) {
+  const date = new Date(Date.UTC(base.year, base.month - 1, base.day + amount));
+  return calendarDate(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
+}
+
+function parseDateFromText(text: string, referenceDate: Date): string | undefined {
+  const today = bangkokDateParts(referenceDate);
 
   if (/วันนี้/.test(text)) {
-    return fmt(today);
+    return calendarDate(today.year, today.month, today.day);
   }
   if (/พรุ่งนี้/.test(text)) {
-    const d = new Date(today);
-    d.setDate(d.getDate() + 1);
-    return fmt(d);
+    return addCalendarDays(today, 1);
   }
-  if (/มะรืน/.test(text)) {
-    const d = new Date(today);
-    d.setDate(d.getDate() + 2);
-    return fmt(d);
+  const relativeMatch = text.match(/อีก\s*([ก-๙\d]+?)\s*วัน/);
+  if (relativeMatch) {
+    const amount = parseThaiNumber(relativeMatch[1]);
+    if (amount !== undefined && amount >= 0 && amount <= 60) return addCalendarDays(today, amount);
+  }
+
+  const slashDate = text.match(/(?:วันที่?\s*)?(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?/);
+  if (slashDate) {
+    const day = Number(slashDate[1]);
+    const month = Number(slashDate[2]);
+    let year = slashDate[3] ? Number(slashDate[3]) : today.year;
+    if (year > 2400) year -= 543;
+    if (year < 100) year += 2000;
+    let result = calendarDate(year, month, day);
+    if (result && !slashDate[3] && result < calendarDate(today.year, today.month, today.day)!) {
+      result = calendarDate(year + 1, month, day);
+    }
+    return result;
+  }
+
+  const dayOfMonthMatch = text.match(/วันที่\s*(\d{1,2})/);
+  if (dayOfMonthMatch) {
+    const requestedDay = Number(dayOfMonthMatch[1]);
+    let year = today.year;
+    let month = today.month;
+    let result = calendarDate(year, month, requestedDay);
+    const todayValue = calendarDate(today.year, today.month, today.day)!;
+    if (!result || result < todayValue) {
+      month += 1;
+      if (month > 12) { month = 1; year += 1; }
+      result = calendarDate(year, month, requestedDay);
+    }
+    return result;
   }
 
   // วันจันทร์, วันอังคาร, ...
   const dayNames = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
   for (let i = 0; i < dayNames.length; i++) {
     if (text.includes(dayNames[i])) {
-      const d = new Date(today);
-      const diff = (i - d.getDay() + 7) % 7 || 7; // ถ้าวันเดียวกัน ให้เป็นสัปดาห์หน้า
-      d.setDate(d.getDate() + diff);
-      return fmt(d);
+      const base = new Date(Date.UTC(today.year, today.month - 1, today.day));
+      const diff = (i - base.getUTCDay() + 7) % 7 || 7;
+      return addCalendarDays(today, diff);
     }
   }
 
@@ -88,17 +161,18 @@ function parseDateFromText(text: string): string | undefined {
 }
 
 function parseTimeFromText(text: string): string | undefined {
-  // "9 โมง", "เก้าโมง", "บ่ายสองโมง"
-  const thaiNums: Record<string, number> = {
-    "หนึ่ง": 1, "สอง": 2, "สาม": 3, "สี่": 4, "ห้า": 5, "หก": 6,
-    "เจ็ด": 7, "แปด": 8, "เก้า": 9, "สิบ": 10, "สิบเอ็ด": 11,
-  };
+  const colonTime = text.match(/(?:^|\s)([01]?\d|2[0-3]):([0-5]\d)(?:\s|$)/);
+  if (colonTime) return `${String(Number(colonTime[1])).padStart(2, "0")}:${colonTime[2]}`;
+
+  if (/เที่ยงคืน/.test(text)) return "00:00";
+  if (/เที่ยงครึ่ง/.test(text)) return "12:30";
+  if (/เที่ยง/.test(text)) return "12:00";
 
   // "ตอนเช้า" default
-  if (/ตอนเช้า/.test(text) && !(/\d/.test(text) || Object.keys(thaiNums).some(k => text.includes(k + "โมง")))) {
+  if (/ตอนเช้า/.test(text) && !(/\d/.test(text) || Object.keys(thaiNumberWords).some(k => text.includes(k + "โมง")))) {
     return "09:00";
   }
-  if (/ตอนบ่าย/.test(text) && !(/\d/.test(text) || Object.keys(thaiNums).some(k => text.includes(k + "โมง")))) {
+  if (/ตอนบ่าย/.test(text) && !(/\d/.test(text) || Object.keys(thaiNumberWords).some(k => text.includes(k + "โมง")))) {
     return "13:00";
   }
   if (/ตอนเย็น/.test(text)) {
@@ -106,34 +180,41 @@ function parseTimeFromText(text: string): string | undefined {
   }
 
   // "บ่าย X โมง"
-  const pmMatch = text.match(/บ่าย\s*(\d+|หนึ่ง|สอง|สาม|สี่|ห้า)\s*โมง/);
+  const pmMatch = text.match(/บ่าย\s*(\d{1,2}|หนึ่ง|สอง|สาม|สี่|ห้า)(?:\s*โมง)?/);
   if (pmMatch) {
-    const n = thaiNums[pmMatch[1]] ?? parseInt(pmMatch[1], 10);
-    if (n >= 1 && n <= 5) return `${(n + 12).toString().padStart(2, "0")}:00`;
+    const n = parseThaiNumber(pmMatch[1]);
+    if (n && n >= 1 && n <= 5) return `${String(n + 12).padStart(2, "0")}:00`;
   }
 
-  // "X โมง" (เช้า)
-  const amMatch = text.match(/(\d+|หนึ่ง|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า|สิบ|สิบเอ็ด)\s*โมง/);
+  const earlyMatch = text.match(/ตี\s*(\d{1,2}|หนึ่ง|สอง|สาม|สี่|ห้า)/);
+  if (earlyMatch) {
+    const n = parseThaiNumber(earlyMatch[1]);
+    if (n && n >= 1 && n <= 5) return `${String(n).padStart(2, "0")}:00`;
+  }
+
+  const eveningMatch = text.match(/(\d{1,2}|หนึ่ง|สอง|สาม|สี่|ห้า)\s*ทุ่ม/);
+  if (eveningMatch) {
+    const n = parseThaiNumber(eveningMatch[1]);
+    if (n && n >= 1 && n <= 5) return `${String(n + 18).padStart(2, "0")}:00`;
+  }
+
+  // "X โมง", "สิบโมงครึ่ง", "6 โมงเย็น"
+  const amMatch = text.match(/(\d{1,2}|สิบเอ็ด|สิบสอง|สิบ|หนึ่ง|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า)\s*โมง\s*(ครึ่ง)?\s*(เช้า|เย็น)?/);
   if (amMatch) {
-    const n = thaiNums[amMatch[1]] ?? parseInt(amMatch[1], 10);
-    if (n >= 1 && n <= 12) {
-      // ถ้ามีคำว่า "เช้า" หรือเลข 6-11 → เช้า
-      // ถ้ามีคำว่า "บ่าย" → บ่าย (handled above)
-      const hour = n <= 5 && !/เช้า/.test(text) ? n + 12 : n < 6 ? n + 6 : n;
-      return `${hour.toString().padStart(2, "0")}:00`;
+    const n = parseThaiNumber(amMatch[1]);
+    if (n && n >= 1 && n <= 12) {
+      const period = amMatch[3];
+      const hour = period === "เย็น" ? (n < 12 ? n + 12 : n) : period === "เช้า" ? n : n <= 5 ? n + 12 : n;
+      return `${String(hour).padStart(2, "0")}:${amMatch[2] ? "30" : "00"}`;
     }
   }
 
   return undefined;
 }
 
-function fmt(d: Date): string {
-  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getDate().toString().padStart(2, "0")}`;
-}
-
 /* ─── Main parser ─── */
 
-export function parseVoiceIntent(text: string): VoiceIntent {
+export function parseVoiceIntent(text: string, referenceDate = new Date()): VoiceIntent {
   const raw = text.trim();
   if (!raw) return { raw };
 
@@ -166,7 +247,7 @@ export function parseVoiceIntent(text: string): VoiceIntent {
   }
 
   // Date & time
-  const serviceDate = parseDateFromText(lower);
+  const serviceDate = parseDateFromText(lower, referenceDate);
   const startTime = parseTimeFromText(lower);
 
   return {

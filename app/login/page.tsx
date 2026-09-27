@@ -2,19 +2,25 @@
 
 import {
   AlertTriangle,
+  Eye,
   HeartHandshake,
+  KeyRound,
   ShieldCheck,
   UserRound,
   UsersRound,
 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Brand } from "../../components/brand";
 import { GoogleSignIn } from "../../components/google-sign-in";
 import { Card } from "../../components/ui";
 
 function LoginContent() {
+  const router = useRouter();
   const [role, setRole] = useState<"customer" | "companion">("customer");
+  const [previewCode, setPreviewCode] = useState("");
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [previewError, setPreviewError] = useState("");
   const errorCode = useSearchParams().get("error");
   const authError =
     errorCode === "profile"
@@ -60,6 +66,58 @@ function LoginContent() {
           </button>
         </div>
         <GoogleSignIn role={role} />
+        <div className="login-divider"><span>หรือดูตัวอย่างระบบ</span></div>
+        <form
+          className="admin-preview-login"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            setPreviewBusy(true);
+            setPreviewError("");
+            try {
+              const response = await fetch("/api/admin-preview", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: previewCode }),
+              });
+              const result = await response.json().catch(() => null);
+              if (!response.ok) {
+                setPreviewError(result?.error ?? "ไม่สามารถเปิดหน้าตัวอย่างได้");
+                return;
+              }
+              router.push("/admin");
+              router.refresh();
+            } finally {
+              setPreviewBusy(false);
+            }
+          }}
+        >
+          <div className="admin-preview-heading">
+            <Eye size={22} aria-hidden="true" />
+            <div>
+              <strong>ทดลองดูหน้า Admin</strong>
+              <small>กรอกรหัสตัวอย่างเพื่อเข้าดูแบบอ่านอย่างเดียว</small>
+            </div>
+          </div>
+          <label htmlFor="admin-preview-code">รหัสสำหรับดูตัวอย่าง</label>
+          <div className="admin-preview-code-row">
+            <div className="admin-preview-code-field">
+              <KeyRound size={19} aria-hidden="true" />
+              <input
+                id="admin-preview-code"
+                value={previewCode}
+                onChange={(event) => setPreviewCode(event.target.value)}
+                placeholder="พิมพ์ test"
+                autoComplete="off"
+                maxLength={64}
+                required
+              />
+            </div>
+            <button type="submit" className="button button-ghost" disabled={previewBusy || !previewCode.trim()}>
+              {previewBusy ? "กำลังเข้า..." : "เข้าดู Admin"}
+            </button>
+          </div>
+          {previewError && <p className="admin-preview-error" role="alert"><AlertTriangle size={17} /> {previewError}</p>}
+        </form>
         <p className="login-note">
           การดำเนินการต่อถือว่าคุณยอมรับเงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัว
         </p>

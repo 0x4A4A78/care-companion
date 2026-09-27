@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CalendarDays, CircleHelp, ClipboardList, Home, LogOut, Search, Settings, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
+import { Bell, CalendarDays, CircleHelp, ClipboardList, Eye, Home, LogOut, Search, Settings, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, type ReactNode, useContext, useState } from "react";
@@ -41,7 +41,17 @@ export function usePortalUser() {
   return user;
 }
 
-export function PortalShell({ role, userName, children }: { role: Role; userName: string; children: ReactNode }) {
+export function PortalShell({
+  role,
+  userName,
+  children,
+  previewMode = false,
+}: {
+  role: Role;
+  userName: string;
+  children: ReactNode;
+  previewMode?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
@@ -67,6 +77,9 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
 
   async function signOut() {
     setSigningOut(true);
+    if (previewMode) {
+      await fetch("/api/admin-preview", { method: "DELETE" });
+    }
     await createClient().auth.signOut();
     router.replace("/login");
     router.refresh();
@@ -211,7 +224,15 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
         </nav>
         <div className="sidebar-bottom"><Link href="/"><CircleHelp size={22} />ความช่วยเหลือ</Link><button type="button" onClick={signOut} disabled={signingOut}><LogOut size={22} />{signingOut ? "กำลังออกจากระบบ..." : "ออกจากระบบ"}</button></div>
       </aside>
-      <main className="portal-main">{children}</main>
+      <main className="portal-main">
+        {previewMode && (
+          <div className="admin-preview-banner" role="status">
+            <Eye size={20} aria-hidden="true" />
+            <span><strong>Admin Preview</strong> — โหมดตัวอย่างสำหรับดูหน้าระบบเท่านั้น การแก้ไขข้อมูลจริงยังต้องเข้าสู่ระบบด้วยบัญชี Admin</span>
+          </div>
+        )}
+        {children}
+      </main>
       <nav
         className="mobile-nav"
         style={{ gridTemplateColumns: `repeat(${mobileItems.length}, minmax(0, 1fr))` }}

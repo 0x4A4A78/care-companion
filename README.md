@@ -23,6 +23,8 @@ npm run dev -- -p 3001
 
 เปิด [http://localhost:3000](http://localhost:3000) (หรือ [http://localhost:3001](http://localhost:3001)) แล้วเข้าสู่ระบบด้วย Google Account
 
+สำหรับการนำเสนอ สามารถกรอก `test` ในส่วน **ทดลองดูหน้า Admin** ของหน้าเข้าสู่ระบบได้ โหมดนี้เปิดดูหน้าจอได้อย่างเดียวและไม่ให้สิทธิ์แก้ข้อมูลจริง ปิดฟีเจอร์ได้ด้วย `ADMIN_PREVIEW_ENABLED=false`
+
 ## ตั้งค่า Supabase และ Google
 
 1. สร้าง Supabase project แล้วนำ `supabase/schema.sql` ไปรันใน SQL Editor

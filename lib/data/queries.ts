@@ -182,23 +182,20 @@ export async function getCustomerRequests(customerId: string, limit = 20): Promi
 export async function getCustomerDashboardData(customerId: string) {
   try {
     const supabase = await createClient();
-    const [requests, companions, { data: contacts }] = await Promise.all([
+    const [requests, { data: contacts }] = await Promise.all([
       getCustomerRequests(customerId, 10),
-      getCompanions({ limit: 3, availableOnly: true }),
       supabase.from("trusted_contacts").select("name, relationship, phone").eq("customer_id", customerId).limit(1),
     ]);
     const activeRequest = requests.find((r) => ["requested", "accepted", "upcoming", "in_service"].includes(r.status)) ?? null;
     return {
       activeRequest,
       recentRequests: requests,
-      recommendedCompanions: companions,
       trustedContact: contacts?.[0] ?? null,
     };
   } catch {
     return {
       activeRequest: null,
       recentRequests: [],
-      recommendedCompanions: [],
       trustedContact: null,
     };
   }

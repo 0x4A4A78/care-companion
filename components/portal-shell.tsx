@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CalendarDays, CircleHelp, ClipboardList, Eye, Home, LogOut, Search, Settings, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
+import { Bell, CalendarDays, CircleHelp, ClipboardList, Eye, Home, LogOut, Settings, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, type ReactNode, useContext, useState } from "react";
@@ -13,8 +13,7 @@ type Role = "customer" | "companion" | "admin";
 const nav = {
   customer: [
     ["/customer", "หน้าหลัก", Home], ["/customer/request", "ขอผู้ช่วย", ClipboardList],
-    ["/companions", "ค้นหาผู้ช่วย", Search], ["/customer/jobs", "งานของฉัน", CalendarDays],
-    ["/customer/profile", "โปรไฟล์", UserRound],
+    ["/customer/jobs", "งานของฉัน", CalendarDays], ["/customer/profile", "โปรไฟล์", UserRound],
   ],
   companion: [
     ["/companion", "หน้าหลัก", Home], ["/companion/requests", "คำขอใหม่", ClipboardList],
@@ -58,7 +57,6 @@ export function PortalShell({
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [globalSearch, setGlobalSearch] = useState("");
   const meta = roleMeta[role];
   const mobileItems = nav[role];
 
@@ -91,21 +89,7 @@ export function PortalShell({
     <PortalUserContext.Provider value={{ name: userName, role }}><div className="portal">
       <header className="topbar">
         <Brand />
-        {role === "customer" ? (
-          <form
-            className="top-search"
-            role="search"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const query = globalSearch.trim();
-              router.push(query ? `/companions?q=${encodeURIComponent(query)}` : "/companions");
-            }}
-          >
-            <Search size={20} />
-            <label className="sr-only" htmlFor="portal-search">ค้นหาผู้ช่วย</label>
-            <input id="portal-search" value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="ค้นหาชื่อหรือความสามารถของผู้ช่วย..." />
-          </form>
-        ) : <div className="top-search-placeholder" aria-hidden="true" />}
+        <div className="top-search-placeholder" aria-hidden="true" />
         <div className="top-actions" style={{ position: "relative" }}>
           <button
             className="icon-button"

@@ -211,9 +211,6 @@ export default async function JobDetail({
                 <p style={{ color: "var(--muted)", fontSize: ".88rem" }}>
                   เมื่อมีผู้ช่วยตอบรับคำขอ ข้อมูลของผู้ช่วยจะปรากฏที่นี่ทันที
                 </p>
-                <Link href="/companions" className="button button-ghost button-full" style={{ marginTop: 12 }}>
-                  ดูรายชื่อผู้ช่วยที่มีอยู่
-                </Link>
               </div>
             )}
           </Card>

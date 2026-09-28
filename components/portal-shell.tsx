@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CalendarDays, CircleHelp, ClipboardList, Home, LogOut, Search, Settings, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
+import { Bell, CalendarDays, CircleHelp, ClipboardList, Eye, Home, LogOut, Settings, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, type ReactNode, useContext, useState } from "react";
@@ -13,8 +13,7 @@ type Role = "customer" | "companion" | "admin";
 const nav = {
   customer: [
     ["/customer", "หน้าหลัก", Home], ["/customer/request", "ขอผู้ช่วย", ClipboardList],
-    ["/companions", "ค้นหาผู้ช่วย", Search], ["/customer/jobs", "งานของฉัน", CalendarDays],
-    ["/customer/profile", "โปรไฟล์", UserRound],
+    ["/customer/jobs", "งานของฉัน", CalendarDays], ["/customer/profile", "โปรไฟล์", UserRound],
   ],
   companion: [
     ["/companion", "หน้าหลัก", Home], ["/companion/requests", "คำขอใหม่", ClipboardList],
@@ -41,14 +40,23 @@ export function usePortalUser() {
   return user;
 }
 
-export function PortalShell({ role, userName, children }: { role: Role; userName: string; children: ReactNode }) {
+export function PortalShell({
+  role,
+  userName,
+  children,
+  previewMode = false,
+}: {
+  role: Role;
+  userName: string;
+  children: ReactNode;
+  previewMode?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [globalSearch, setGlobalSearch] = useState("");
   const meta = roleMeta[role];
   const mobileItems = nav[role];
 
@@ -67,6 +75,9 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
 
   async function signOut() {
     setSigningOut(true);
+    if (previewMode) {
+      await fetch("/api/admin-preview", { method: "DELETE" });
+    }
     await createClient().auth.signOut();
     router.replace("/login");
     router.refresh();
@@ -78,21 +89,7 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
     <PortalUserContext.Provider value={{ name: userName, role }}><div className="portal">
       <header className="topbar">
         <Brand />
-        {role === "customer" ? (
-          <form
-            className="top-search"
-            role="search"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const query = globalSearch.trim();
-              router.push(query ? `/companions?q=${encodeURIComponent(query)}` : "/companions");
-            }}
-          >
-            <Search size={20} />
-            <label className="sr-only" htmlFor="portal-search">ค้นหาผู้ช่วย</label>
-            <input id="portal-search" value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="ค้นหาชื่อหรือความสามารถของผู้ช่วย..." />
-          </form>
-        ) : <div className="top-search-placeholder" aria-hidden="true" />}
+        <div className="top-search-placeholder" aria-hidden="true" />
         <div className="top-actions" style={{ position: "relative" }}>
           <button
             className="icon-button"
@@ -211,7 +208,15 @@ export function PortalShell({ role, userName, children }: { role: Role; userName
         </nav>
         <div className="sidebar-bottom"><Link href="/"><CircleHelp size={22} />ความช่วยเหลือ</Link><button type="button" onClick={signOut} disabled={signingOut}><LogOut size={22} />{signingOut ? "กำลังออกจากระบบ..." : "ออกจากระบบ"}</button></div>
       </aside>
-      <main className="portal-main">{children}</main>
+      <main className="portal-main">
+        {previewMode && (
+          <div className="admin-preview-banner" role="status">
+            <Eye size={20} aria-hidden="true" />
+            <span><strong>Admin Preview</strong> — โหมดตัวอย่างสำหรับดูหน้าระบบเท่านั้น การแก้ไขข้อมูลจริงยังต้องเข้าสู่ระบบด้วยบัญชี Admin</span>
+          </div>
+        )}
+        {children}
+      </main>
       <nav
         className="mobile-nav"
         style={{ gridTemplateColumns: `repeat(${mobileItems.length}, minmax(0, 1fr))` }}

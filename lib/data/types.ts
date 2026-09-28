@@ -32,6 +32,9 @@ export type ServiceRequestView = {
   startTime: string;
   durationHours: number;
   pickup: string;
+  pickupLatitude: number | null;
+  pickupLongitude: number | null;
+  pickupAccuracyMeters: number | null;
   destination: string;
   supportNeeds: string[];
   notes: string;

@@ -19,6 +19,11 @@ describe("request conversation voice answers", () => {
     expect(getConversationVoicePatch("duration", "ประมาณ 4 ชั่วโมง")).toEqual({ durationHours: 4 });
     expect(getConversationVoicePatch("duration", "ทั้งวันเลย")).toEqual({});
   });
+
+  it("accepts a date and time in the same chat answer", () => {
+    const result = getConversationVoicePatch("datetime", "อีก 3 วัน 10 โมงเช้า", new Date("2026-09-27T03:00:00.000Z"));
+    expect(result).toEqual({ serviceDate: "2026-09-30", startTime: "10:00" });
+  });
 });
 
 describe("Thai 24-hour time input", () => {

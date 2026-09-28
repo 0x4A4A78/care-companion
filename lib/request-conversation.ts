@@ -36,10 +36,10 @@ export type VoicePatch = Partial<{
   notes: string;
 }>;
 
-export function getConversationVoicePatch(step: ConversationStep, transcript: string): VoicePatch {
+export function getConversationVoicePatch(step: ConversationStep, transcript: string, referenceDate = new Date()): VoicePatch {
   const text = transcript.trim();
   if (!text) return {};
-  const intent = parseVoiceIntent(text);
+  const intent = parseVoiceIntent(text, referenceDate);
 
   switch (step) {
     case "category":

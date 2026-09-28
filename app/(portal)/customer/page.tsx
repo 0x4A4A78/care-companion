@@ -7,22 +7,17 @@ import {
   Phone,
   Plus,
   ShieldCheck,
-  Star,
-  Users,
 } from "lucide-react";
 import Link from "next/link";
-import { Avatar, Badge, Card } from "../../../components/ui";
+import { Badge, Card } from "../../../components/ui";
 import { getPortalUser } from "../../../lib/auth/portal-user";
-import { formatMoney, formatThaiDate, serviceCategoryLabel } from "../../../lib/data/presentation";
+import { formatThaiDate, serviceCategoryLabel } from "../../../lib/data/presentation";
 import { getCustomerDashboardData } from "../../../lib/data/queries";
-
-const tones = ["green", "blue", "rose"] as const;
 
 export default async function CustomerDashboard() {
   const user = await getPortalUser();
   const data = user ? await getCustomerDashboardData(user.id) : null;
   const activeReq = data?.activeRequest;
-  const companions = data?.recommendedCompanions ?? [];
   const contact = data?.trustedContact;
 
   return (
@@ -44,17 +39,6 @@ export default async function CustomerDashboard() {
 
       <div className="grid-main">
         <div className="stack">
-          <Card className="welcome">
-            <div>
-              <span className="eyebrow">CARE COMPANION</span>
-              <h2>พร้อมช่วยให้ทุกธุระเป็นเรื่องง่าย</h2>
-              <p>บอกวัน เวลา และสถานที่ ระบบจะแนะนำผู้ช่วยที่เหมาะกับคุณ</p>
-            </div>
-            <Link className="button button-primary" href="/customer/request">
-              เริ่มสร้างคำขอ
-            </Link>
-          </Card>
-
           {activeReq ? (
             <Card className="status-card">
               <div className="card-title">
@@ -106,71 +90,6 @@ export default async function CustomerDashboard() {
             </Card>
           )}
 
-          <div>
-            <div className="section-title">
-              <h2>ผู้ช่วยแนะนำสำหรับคุณ</h2>
-              <Link className="text-link" href="/companions">
-                ดูทั้งหมด <ArrowRight size={16} />
-              </Link>
-            </div>
-
-            {companions.length === 0 ? (
-              <Card className="form-card" style={{ textAlign: "center", padding: "35px" }}>
-                <Users size={32} style={{ margin: "0 auto 10px", color: "var(--blue)" }} />
-                <h3>ยังไม่มีผู้ช่วยที่เปิดรับงานในขณะนี้</h3>
-                <p style={{ color: "var(--muted)", fontSize: ".92rem" }}>
-                  ระบบจะแสดงรายชื่อ Companion เมื่อมีการลงทะเบียนและอนุมัติในระบบแล้ว
-                </p>
-              </Card>
-            ) : (
-              <div className="companion-grid">
-                {companions.map((person, idx) => {
-                  const tone = tones[idx % tones.length];
-                  const initials = person.name.slice(0, 2);
-                  return (
-                    <Card key={person.id} className="companion-card">
-                      <div className="companion-profile">
-                        <Avatar name={initials} tone={tone} />
-                        <div>
-                          <h3>{person.name}</h3>
-                          <p>
-                            <Star size={15} fill="#f3a712" color="#f3a712" />{" "}
-                            {person.rating ? person.rating.toFixed(1) : "ใหม่"}{" "}
-                            <small>({person.reviewCount} รีวิว)</small>
-                          </p>
-                        </div>
-                      </div>
-                      <Badge tone="green">
-                        <Check size={14} /> ยืนยันตัวตนแล้ว
-                      </Badge>
-                      <p>
-                        ประสบการณ์ {person.experienceYears} ปี
-                        <br />
-                        {person.area}
-                      </p>
-                      <div className="skill-list">
-                        {person.skills.slice(0, 3).map((s) => (
-                          <Badge tone="gray" key={s}>
-                            {s}
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="price-row">
-                        <span>เริ่มต้น</span>
-                        <strong>{formatMoney(person.hourlyRate)} บาท/ชม.</strong>
-                      </div>
-                      <Link
-                        className="button button-primary button-full"
-                        href={`/companions/${person.id}`}
-                      >
-                        ดูโปรไฟล์
-                      </Link>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
         </div>
 
         <aside className="stack">

@@ -8,7 +8,9 @@ import {
   Check,
   CircleEllipsis,
   Clock,
+  AlertTriangle,
   Landmark,
+  Lightbulb,
   MapPin,
   Mic,
   MicOff,
@@ -20,6 +22,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -34,6 +37,11 @@ import {
   type ConversationStep,
 } from "../../../../lib/request-conversation";
 import { serviceRequestSchema } from "../../../../lib/request-schema";
+
+const LocationPickerMap = dynamic(() => import("../../../../components/location-picker-map"), {
+  ssr: false,
+  loading: () => <div className="location-map-loading">กำลังเปิดแผนที่...</div>,
+});
 
 const categories = [
   { id: "hospital", label: "ไปพบแพทย์ / โรงพยาบาล", Icon: Stethoscope },
@@ -52,12 +60,12 @@ const steps: { id: ConversationStep; question: string; hint: string }[] = [
   {
     id: "datetime",
     question: "ต้องการให้ผู้ช่วยไปพบในวันไหน และเวลาประมาณกี่โมงครับ?",
-    hint: "กดเลือกวันที่และเวลาด้านล่าง หรือพิมพ์ เช่น 'พรุ่งนี้ 9 โมงเช้า' ได้ครับ",
+    hint: "พิมพ์คุยได้เลย เช่น 'อีก 3 วัน 10 โมงเช้า', 'พรุ่งนี้บ่ายสอง' หรือ 'วันที่ 28 เวลา 10 โมง' ครับ",
   },
   {
     id: "pickup",
     question: "ให้ผู้ช่วยเดินทางไปรับที่ไหนครับ?",
-    hint: "พิมพ์ชื่อบ้าน ซอย คอนโด หรือจุดสังเกตในช่องพิมพ์ด้านล่างได้เลยครับ",
+    hint: "พิมพ์ชื่อบ้าน ซอย หรือจุดสังเกต หรือกดเปิดแผนที่เพื่อแชร์ตำแหน่งและปักหมุดได้เลยครับ",
   },
   {
     id: "destination",
@@ -100,6 +108,9 @@ type RequestData = {
   startTime: string;
   durationHours: number;
   pickup: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
+  pickupAccuracyMeters?: number;
   destination: string;
   supportNeeds: string[];
   notes: string;
@@ -135,6 +146,7 @@ function RequestConversation() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
+  const [showPickupMap, setShowPickupMap] = useState(false);
   const [voiceMode, setVoiceMode] = useState(searchParams.get("voice") === "1");
   const [createdRequest, setCreatedRequest] = useState<{ reference_no: string } | null>(null);
 
@@ -151,7 +163,11 @@ function RequestConversation() {
 
   // Auto scroll to latest chat bubble
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    endRef.current?.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "nearest",
+    });
   }, [stepIndex, error, listening]);
 
   // Read stored voice intent from landing page if available
@@ -330,7 +346,7 @@ function RequestConversation() {
         if (data.serviceDate) setTimeout(advance, 200);
         return;
       }
-      setError("กรุณาระบุวันและเวลา เช่น พรุ่งนี้ 9 โมงเช้า หรือเลือกจากปุ่มด้านบนครับ");
+      setError("ยังอ่านวันหรือเวลาไม่ครบครับ ลองพิมพ์ เช่น ‘อีก 3 วัน 10 โมงเช้า’ หรือ ‘วันที่ 28 บ่ายสอง’");
       return;
     }
 
@@ -523,9 +539,6 @@ function RequestConversation() {
   const tomorrowDate = new Date();
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
   const tomorrowStr = toDateInputValue(tomorrowDate);
-  const dayAfterTomorrow = new Date();
-  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
-  const dayAfterStr = toDateInputValue(dayAfterTomorrow);
 
   if (createdRequest) {
     return (
@@ -558,7 +571,7 @@ function RequestConversation() {
 
   const placeholderMap: Record<ConversationStep, string> = {
     category: "พิมพ์บอกประเภทธุระ เช่น ไปโรงพยาบาล...",
-    datetime: "พิมพ์วันและเวลา เช่น พรุ่งนี้ 9 โมงเช้า หรือเลือกด้านบน...",
+    datetime: "เช่น อีก 3 วัน 10 โมงเช้า หรือ วันที่ 28 บ่ายสอง...",
     pickup: "พิมพ์สถานที่นัดรับ เช่น บ้านเลขที่ 123 ซอยสุขุมวิท 4...",
     destination: "พิมพ์จุดหมายปลายทาง เช่น โรงพยาบาลศิริราช...",
     duration: "พิมพ์จำนวนชั่วโมง เช่น 3 หรือ 4 ชั่วโมง...",
@@ -610,9 +623,9 @@ function RequestConversation() {
               type="button"
               className={`voice-mode-toggle ${voiceMode ? "active" : ""}`}
               onClick={() => setVoiceMode((v) => !v)}
-              style={{ minHeight: 34, padding: "5px 9px", fontSize: ".78rem" }}
               title={voiceMode ? "ปิดเสียงอ่าน" : "เปิดเสียงอ่านอัตโนมัติ"}
               aria-label={voiceMode ? "ปิดเสียงอ่าน" : "เปิดเสียงอ่านอัตโนมัติ"}
+              aria-pressed={voiceMode}
             >
               {voiceMode ? <Volume2 size={15} /> : <VolumeX size={15} />}
               <span className="voice-toggle-text">{voiceMode ? "เสียงเปิด" : "เสียงปิด"}</span>
@@ -666,8 +679,9 @@ function RequestConversation() {
                 <strong style={{ fontSize: "1.05rem", display: "block", color: "var(--navy)" }}>
                   {currentStep.question}
                 </strong>
-                <small style={{ display: "block", color: "var(--muted)", marginTop: 4, fontSize: ".84rem" }}>
-                  💡 {currentStep.hint}
+                <small className="line-step-hint">
+                  <Lightbulb size={16} aria-hidden="true" />
+                  <span>{currentStep.hint}</span>
                 </small>
 
                 {/* Quick Action Options inside Bot Bubble */}
@@ -695,11 +709,11 @@ function RequestConversation() {
                   {/* Datetime choices */}
                   {currentStep.id === "datetime" && (
                     <div style={{ display: "grid", gap: 10, width: "100%", minWidth: 0 }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6 }}>
                         <button
                           type="button"
                           className={`line-quick-btn ${data.serviceDate === todayStr ? "selected" : ""}`}
-                          style={{ minHeight: 40, padding: "8px 2px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
+                          style={{ minHeight: 48, padding: "8px 4px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
                           onClick={() => setData({ ...data, serviceDate: todayStr })}
                         >
                           วันนี้
@@ -707,18 +721,10 @@ function RequestConversation() {
                         <button
                           type="button"
                           className={`line-quick-btn ${data.serviceDate === tomorrowStr ? "selected" : ""}`}
-                          style={{ minHeight: 40, padding: "8px 2px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
+                          style={{ minHeight: 48, padding: "8px 4px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
                           onClick={() => setData({ ...data, serviceDate: tomorrowStr })}
                         >
                           พรุ่งนี้
-                        </button>
-                        <button
-                          type="button"
-                          className={`line-quick-btn ${data.serviceDate === dayAfterStr ? "selected" : ""}`}
-                          style={{ minHeight: 40, padding: "8px 2px", justifyContent: "center", fontSize: ".88rem", textAlign: "center" }}
-                          onClick={() => setData({ ...data, serviceDate: dayAfterStr })}
-                        >
-                          มะรืนนี้
                         </button>
                       </div>
 
@@ -777,7 +783,7 @@ function RequestConversation() {
                               type="button"
                               className={`line-quick-btn ${data.startTime === t ? "selected" : ""}`}
                               style={{
-                                minHeight: 36,
+                                minHeight: 48,
                                 padding: "4px 2px",
                                 fontSize: ".82rem",
                                 justifyContent: "center",
@@ -806,6 +812,38 @@ function RequestConversation() {
                   {/* Pickup suggestions */}
                   {currentStep.id === "pickup" && (
                     <div style={{ display: "grid", gap: 8 }}>
+                      <button
+                        type="button"
+                        className="button button-primary button-full"
+                        onClick={() => setShowPickupMap((visible) => !visible)}
+                        aria-expanded={showPickupMap}
+                      >
+                        <MapPin size={18} />
+                        {showPickupMap ? "ซ่อนแผนที่" : "แชร์ตำแหน่งปัจจุบัน / ปักหมุด"}
+                      </button>
+                      {showPickupMap && (
+                        <LocationPickerMap
+                          value={data.pickupLatitude !== undefined && data.pickupLongitude !== undefined
+                            ? {
+                                latitude: data.pickupLatitude,
+                                longitude: data.pickupLongitude,
+                                accuracyMeters: data.pickupAccuracyMeters,
+                              }
+                            : undefined}
+                          onChange={(location) => setData((previous) => ({
+                            ...previous,
+                            pickup: previous.pickup.trim() || "ตำแหน่งที่ปักหมุดบนแผนที่",
+                            pickupLatitude: location.latitude,
+                            pickupLongitude: location.longitude,
+                            pickupAccuracyMeters: location.accuracyMeters,
+                          }))}
+                          onClose={() => setShowPickupMap(false)}
+                          onConfirm={() => {
+                            setShowPickupMap(false);
+                            setTimeout(advance, 150);
+                          }}
+                        />
+                      )}
                       <span style={{ fontSize: ".82rem", color: "var(--muted)" }}>
                         สถานที่แนะนำด่วน (หรือพิมพ์ระบุด้านล่าง):
                       </span>
@@ -815,9 +853,15 @@ function RequestConversation() {
                             key={p}
                             type="button"
                             className="line-quick-btn"
-                            style={{ minHeight: 38, padding: "6px 12px", fontSize: ".88rem" }}
+                            style={{ minHeight: 48, padding: "8px 12px", fontSize: ".88rem" }}
                             onClick={() => {
-                              setData({ ...data, pickup: p });
+                              setData((previous) => ({
+                                ...previous,
+                                pickup: p,
+                                pickupLatitude: undefined,
+                                pickupLongitude: undefined,
+                                pickupAccuracyMeters: undefined,
+                              }));
                               setTimeout(advance, 150);
                             }}
                           >
@@ -846,7 +890,7 @@ function RequestConversation() {
                             key={d}
                             type="button"
                             className="line-quick-btn"
-                            style={{ minHeight: 38, padding: "6px 12px", fontSize: ".88rem" }}
+                            style={{ minHeight: 48, padding: "8px 12px", fontSize: ".88rem" }}
                             onClick={() => {
                               setData({ ...data, destination: d });
                               setTimeout(advance, 150);
@@ -871,7 +915,7 @@ function RequestConversation() {
                             justifyContent: "center",
                             fontSize: ".92rem",
                             padding: "8px 4px",
-                            minHeight: 42,
+                            minHeight: 48,
                             whiteSpace: "nowrap",
                           }}
                           onClick={() => {
@@ -1054,12 +1098,12 @@ function RequestConversation() {
                           disabled={busy}
                           onClick={submitRequest}
                         >
-                          {busy ? "กำลังส่งคำขอ..." : "ยืนยันและส่งคำขอทันที ✨"}
+                          {busy ? "กำลังส่งคำขอ..." : "ยืนยันและส่งคำขอทันที"}
                         </button>
                         <button
                           type="button"
                           className="button button-ghost button-full"
-                          style={{ minHeight: 40, fontSize: ".9rem" }}
+                          style={{ minHeight: 48, fontSize: ".9rem" }}
                           onClick={() => setStepIndex(0)}
                         >
                           <RotateCcw size={15} /> เริ่มกรอกใหม่ตั้งแต่แรก
@@ -1071,19 +1115,9 @@ function RequestConversation() {
 
                 {/* Error Banner */}
                 {error && (
-                  <p
-                    style={{
-                      margin: "10px 0 0",
-                      padding: "8px 12px",
-                      borderRadius: 10,
-                      background: "#fff0f1",
-                      color: "var(--red)",
-                      fontWeight: 700,
-                      fontSize: ".9rem",
-                    }}
-                    role="alert"
-                  >
-                    ⚠️ {error}
+                  <p className="line-form-error" role="alert">
+                    <AlertTriangle size={18} aria-hidden="true" />
+                    <span>{error}</span>
                   </p>
                 )}
               </div>
@@ -1111,6 +1145,7 @@ function RequestConversation() {
                 setStepIndex((idx) => Math.max(0, idx - 1));
               }}
               title="ย้อนกลับไปข้อก่อนหน้า"
+              aria-label="ย้อนกลับไปข้อก่อนหน้า"
             >
               <ArrowLeft size={20} />
             </button>
@@ -1119,6 +1154,7 @@ function RequestConversation() {
               href="/customer"
               className="line-mic-btn"
               title="ยกเลิกและกลับหน้าหลัก"
+              aria-label="ยกเลิกและกลับหน้าหลัก"
               style={{ display: "grid", placeItems: "center" }}
             >
               <ArrowLeft size={20} />
@@ -1131,6 +1167,8 @@ function RequestConversation() {
             className={`line-mic-btn ${listening ? "listening" : ""}`}
             onClick={() => (listening ? recognitionRef.current?.stop() : startListening())}
             title={listening ? "กำลังฟัง... กดเพื่อหยุด" : "กดเพื่อพูดตอบด้วยเสียง"}
+            aria-label={listening ? "หยุดฟังเสียง" : "ตอบด้วยเสียง"}
+            aria-pressed={listening}
           >
             {listening ? <MicOff size={22} /> : <Mic size={22} />}
           </button>
@@ -1144,7 +1182,7 @@ function RequestConversation() {
             onChange={(e) => setComposerText(e.target.value)}
             placeholder={
               listening
-                ? "🎙️ กำลังฟังเสียงของคุณตาคุณยาย..."
+                ? "กำลังฟังเสียงของคุณตาคุณยาย..."
                 : placeholderMap[currentStep.id] || "พิมพ์ข้อความที่นี่..."
             }
           />
